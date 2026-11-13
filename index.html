@@ -122,7 +122,16 @@ button.danger{background:#7b3450!important}
 #countdownNumber{color:#67e8f9!important;text-shadow:0 0 35px #0891b2!important}
 .scoreboard th{color:#9cc5e9!important}
 .scoreboard td,.scoreboard th{border-color:#304866!important}
-.sound-toggle{background:#123b52;border-color:#36c9ed;color:#8defff;padding:8px 11px}.final-results{border:2px solid #39c9e8;background:linear-gradient(145deg,#142b46,#111a2e);margin-top:14px}.final-results h2{margin:0 0 8px;color:#8defff}.final-results .champion{font-size:20px;font-weight:950;color:#ffe28a;margin:8px 0 14px}.final-results table{width:100%;border-collapse:collapse}.final-results th,.final-results td{padding:9px;border-bottom:1px solid #405577;text-align:left}.final-results th{color:#8defff}.final-results tr:first-child td{color:#ffe28a;font-weight:900}</style></head><body><div id="countdownOverlay"><div id="countdownNumber">3</div><div id="countdownCaption">БЭЛДЭЭРЭЙ!</div></div><main>
+
+.sound-toggle{background:#123b52;border-color:#36c9ed;color:#8defff;padding:8px 11px}
+.final-results{border:2px solid #39c9e8;background:linear-gradient(145deg,#142b46,#111a2e);margin-top:14px}
+.final-results h2{margin:0 0 8px;color:#8defff}
+.final-results .champion{font-size:20px;font-weight:950;color:#ffe28a;margin:8px 0 14px}
+.final-results table{width:100%;border-collapse:collapse}
+.final-results th,.final-results td{padding:9px;border-bottom:1px solid #405577;text-align:left}
+.final-results th{color:#8defff}
+.final-results tr:first-child td{color:#ffe28a;font-weight:900}
+</style></head><body><div id="countdownOverlay"><div id="countdownNumber">3</div><div id="countdownCaption">БЭЛДЭЭРЭЙ!</div></div><main>
 <header><h1>🧱 ONLINE TETRIS</h1><p>2–6 хүн · Өрөөний жагсаалт · Тоглогчийн нэр · Дахин холбогдох</p></header>
 <section class="panel">
  <div class="row"><label>Тоглогчийн нэр <input id="name" maxlength="18" placeholder="Нэрээ бичнэ үү"></label><button id="saveName">Нэр хадгалах</button><span class="muted" id="welcome"></span></div>
@@ -204,10 +213,31 @@ function snapshot(){const joined=players.filter(p=>p.token);const alive=joined.f
 function updateMeta(){$("spectate").disabled=!room||host;$("roomLabel").textContent=room||"—";$("seatLabel").textContent=seat<0?"—":seat+1;$("count").textContent=players.filter(p=>p.connected).length+" / "+capacity;const readyCount=players.filter(p=>p.connected&&readyPlayers.has(p.id)).length;const needed=players.filter(p=>p.connected).length;$("readyPrompt").textContent=over?"🏁 SPACE дарж дахин эхлүүлэх санал өгнө үү":started?"🎮 ТОГЛООМ ЭХЭЛЛЭЭ!":"⏳ Өрөөнд орсон бүх тоглогч SPACE дарна уу ("+readyCount+"/"+needed+")";$("copy").disabled=!room;$("reconnect").disabled=!localStorage.getItem("ot_token")||host}
 function playTone(freq=520,duration=0.08,type="sine",volume=0.035){
  if(!audioOn)return;
- try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;audioCtx=audioCtx||new AC();if(audioCtx.state==="suspended")audioCtx.resume();const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();osc.type=type;osc.frequency.value=freq;gain.gain.setValueAtTime(volume,audioCtx.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+duration);osc.connect(gain);gain.connect(audioCtx.destination);osc.start();osc.stop(audioCtx.currentTime+duration)}catch(e){}
+ try{
+  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+  audioCtx=audioCtx||new AC();
+  if(audioCtx.state==="suspended")audioCtx.resume();
+  const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
+  osc.type=type;osc.frequency.value=freq;
+  gain.gain.setValueAtTime(volume,audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+duration);
+  osc.connect(gain);gain.connect(audioCtx.destination);
+  osc.start();osc.stop(audioCtx.currentTime+duration);
+ }catch(e){}
 }
-function soundEvent(kind){if(kind==="move")playTone(300,.025,"square",.012);if(kind==="rotate")playTone(430,.05,"sine",.02);if(kind==="drop")playTone(180,.09,"triangle",.04);if(kind==="line"){playTone(660,.12);setTimeout(()=>playTone(880,.16),90)}if(kind==="win"){[523,659,784,1046].forEach((f,i)=>setTimeout(()=>playTone(f,.2,"triangle",.045),i*130))}if(kind==="lose"){playTone(240,.18,"sawtooth",.03);setTimeout(()=>playTone(150,.25,"sawtooth",.025),150)}}
-$("soundToggle").onclick=()=>{audioOn=!audioOn;$("soundToggle").textContent=audioOn?"🔊 Дуу: АСААЛТТАЙ":"🔇 Дуу: УНТРААЛТТАЙ";if(audioOn)playTone(600,.07)};
+function soundEvent(kind){
+ if(kind==="move")playTone(300,.025,"square",.012);
+ else if(kind==="rotate")playTone(430,.05,"sine",.02);
+ else if(kind==="drop")playTone(180,.09,"triangle",.04);
+ else if(kind==="line"){playTone(660,.12);setTimeout(()=>playTone(880,.16),90)}
+ else if(kind==="win"){[523,659,784,1046].forEach((f,i)=>setTimeout(()=>playTone(f,.2,"triangle",.045),i*130))}
+ else if(kind==="lose"){playTone(240,.18,"sawtooth",.03);setTimeout(()=>playTone(150,.25,"sawtooth",.025),150)}
+}
+$("soundToggle").addEventListener("click",()=>{
+ audioOn=!audioOn;
+ $("soundToggle").textContent=audioOn?"🔊 Дуу: АСААЛТТАЙ":"🔇 Дуу: УНТРААЛТТАЙ";
+ if(audioOn)playTone(600,.07);
+});
 function miniPreview(shape){
  if(!shape)return '<span class="empty-preview">—</span>';
  let rows=shape.m.length,cols=shape.m[0].length;
@@ -238,7 +268,10 @@ function render(){
  if(over&&finalResults.length){
   resultsBox.classList.remove("hidden");
   const champ=finalResults[0];
-  resultsBox.innerHTML=`<h2>🏁 ТОГЛООМ ДУУСЛАА — ЭЦСИЙН БАЙР</h2><div class="champion">🏆 1-р байр: ${esc(champ.name)}</div><table><thead><tr><th>Байр</th><th>Тоглогч</th><th>Оноо</th><th>Мөр</th><th>Төлөв</th></tr></thead><tbody>${finalResults.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.name)}</td><td>${p.score}</td><td>${p.lines}</td><td>${i===0?"ЯЛАГЧ":"Тоглолт дууссан"}</td></tr>`).join("")}</tbody></table>`;
+  resultsBox.innerHTML=`<h2>🏁 ТОГЛООМ ДУУСЛАА — ЭЦСИЙН БАЙР</h2>
+   <div class="champion">🏆 1-р байр: ${esc(champ.name)}</div>
+   <table><thead><tr><th>Байр</th><th>Тоглогч</th><th>Оноо</th><th>Мөр</th><th>Төлөв</th></tr></thead>
+   <tbody>${finalResults.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.name)}</td><td>${p.score}</td><td>${p.lines}</td><td>${i===0?"ЯЛАГЧ":"Тоглолт дууссан"}</td></tr>`).join("")}</tbody></table>`;
  }else{resultsBox.classList.add("hidden");resultsBox.innerHTML=""}
  let sorted=[...players].sort((a,b)=>b.score-a.score);
  $("ranking").innerHTML=sorted.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.name)}</td><td>${p.score}</td><td>${p.lines}</td><td>${p.alive?(p.connected?"Тоглож байна":"Холболт тасарсан"):"Ялагдсан"}</td></tr>`).join("")||'<tr><td colspan="5">Тоглогч алга.</td></tr>';
@@ -253,7 +286,14 @@ function draw(p,i){
  if(p.alive&&p.piece){
   const ghost={...p,piece:{...p.piece,y:p.piece.y}};
   while(!collide(ghost,0,1))ghost.piece.y++;
-  p.piece.m.forEach((r,y)=>r.forEach((v,x)=>{if(v){c.fillStyle=p.piece.c+"35";c.fillRect((p.piece.x+x)*20+2,(ghost.piece.y+y)*20+2,16,16);c.strokeStyle=p.piece.c+"aa";c.strokeRect((p.piece.x+x)*20+2,(ghost.piece.y+y)*20+2,16,16)}}));
+  p.piece.m.forEach((r,y)=>r.forEach((v,x)=>{
+   if(v){
+    c.fillStyle=p.piece.c+"35";
+    c.fillRect((p.piece.x+x)*20+2,(ghost.piece.y+y)*20+2,16,16);
+    c.strokeStyle=p.piece.c+"aa";
+    c.strokeRect((p.piece.x+x)*20+2,(ghost.piece.y+y)*20+2,16,16);
+   }
+  }));
   p.piece.m.forEach((r,y)=>r.forEach((v,x)=>{if(v)b(p.piece.x+x,p.piece.y+y,p.piece.c)}));
  }
  if(!p.alive){c.fillStyle="#000b";c.fillRect(0,0,200,400);c.fillStyle="white";c.font="bold 22px sans-serif";c.textAlign="center";c.fillText("GAME OVER",100,205)}
@@ -329,7 +369,7 @@ function clientMessage(m){if(m.type==="countdown"){showCountdown(m.value,m.label
  players=m.data.players;started=m.data.started;over=m.data.over;elapsed=m.data.elapsed;capacity=m.data.capacity;readyPlayers=new Set(m.data.ready||[]);finalResults=m.data.finalResults||[];
  $("time").textContent=fmt(elapsed);$("net").textContent=hostConn?.spectator?"Үзэж байна":"Холбогдсон";
  $("rematch").disabled=!over||seat<0;$("spectate").disabled=true;render();
- if(over&&!wasOver){soundEvent(m.data.winnerName&&m.data.winnerName!=="Тэнцлээ"?"win":"lose");const winner=m.data.winnerName||players.find(p=>p.alive)?.name;toast(winner&&winner!=="Тэнцлээ"?"🏆 "+winner+" ЯЛАГЧ БОЛЛОО!":"🤝 ТОГЛООМ ДУУСЛАА!")}
+ if(over&&!wasOver){const winner=m.data.winnerName||players.find(p=>p.alive)?.name;soundEvent(winner&&winner!=="Тэнцлээ"?"win":"lose");toast(winner&&winner!=="Тэнцлээ"?"🏆 "+winner+" ЯЛАГЧ БОЛЛОО!":"🤝 ТОГЛООМ ДУУСЛАА!")}
 }}
 function appendChat(item){let box=$("chatLog");if(box.textContent==="Чат эхлээгүй байна.")box.textContent="";let line=document.createElement("div");line.textContent=(item.name||"Тоглогч")+": "+item.text;box.appendChild(line);box.scrollTop=box.scrollHeight}
 function sendChat(){let text=$("chatInput").value.trim();if(!text)return;if(host){let item={name,text,at:Date.now()};appendChat(item);connections.forEach(c=>send(c,{type:"chat",item}));spectators.forEach(c=>send(c,{type:"chat",item}))}else send(hostConn,{type:"chat",name,text});$("chatInput").value=""}
@@ -339,7 +379,7 @@ $("spectate").onclick=()=>{let c=room||$("roomCode").value.trim().toUpperCase();
 $("rematch").onclick=()=>{if(seat<0)return;if(host){rematchVotes.add(seat);$("votes").textContent="Дахин тоглох санал: "+rematchVotes.size+"/"+players.filter(p=>p.connected).length;if(rematchVotes.size>=players.filter(p=>p.connected).length)resetRound()}else send(hostConn,{type:"rematch",seat})};
 function performAction(a){
  if(seat<0||!started)return;
- if(a==="left"||a==="right"||a==="down")soundEvent("move");if(a==="rotate")soundEvent("rotate");if(a==="drop")soundEvent("drop");
+ if(a==="left"||a==="right"||a==="down")soundEvent("move");else if(a==="rotate")soundEvent("rotate");else if(a==="drop")soundEvent("drop");
  if(host){action(seat,a);broadcast()}
  else send(hostConn,{type:"action",seat,action:a});
 }
