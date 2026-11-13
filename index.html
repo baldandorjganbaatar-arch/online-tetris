@@ -4,7 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
-*{box-sizing:border-box}body{margin:0;padding:12px;background:radial-gradient(ellipse at top,#263c68,#111a2e 60%,#080d18);color:#f3f6ff;font-family:system-ui,Arial,sans-serif;min-height:100vh}main{max-width:1450px;margin:auto}header{text-align:center}h1{margin:0;font-size:clamp(24px,4vw,36px)}header p,.muted{color:#b8c5dc}.panel{background:#151f38;border:1px solid #405577;border-radius:13px;padding:13px;margin:10px 0}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}input,select{background:#0c1629;color:white;border:1px solid #7188b2;border-radius:8px;padding:10px;min-width:120px}button{border:1px solid #7188b2;border-radius:8px;padding:10px 13px;background:#31517f;color:white;font-weight:850;cursor:pointer}button:disabled{opacity:.4;cursor:not-allowed}.primary{background:#176b61}.danger{background:#793d53}.rooms{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:9px}.room{background:#0c1629;border:1px solid #526586;border-radius:10px;padding:10px}.room b{display:block}.room small{color:#b8c5dc}.room button{margin-top:8px;width:100%}.players{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.player{background:#151f38;border:1px solid #405577;border-radius:12px;text-align:center;padding:8px;min-width:0}.player.me{border-color:#75e6a2}.player h3{margin:3px;font-size:15px}.player canvas{width:min(100%,200px);height:auto;aspect-ratio:1/2;background:#080e1a;border:2px solid #526586;border-radius:6px}.stats{display:flex;justify-content:center;gap:18px;color:#b8c5dc}.stats b{color:white}.bar{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}.status{color:#ffdf87;font-weight:900}#toast{text-align:center;min-height:24px;color:#ffdf87;font-weight:850}.hidden{display:none!important}.scoreboard{width:100%;border-collapse:collapse}.scoreboard td,.scoreboard th{padding:7px;border-bottom:1px solid #405577;text-align:left}.scoreboard th{color:#b8c5dc}.note{font-size:12px;color:#aebbd3;line-height:1.5}
+*{box-sizing:border-box}body{margin:0;padding:12px;background:radial-gradient(ellipse at top,#263c68,#111a2e 60%,#080d18);color:#f3f6ff;font-family:system-ui,Arial,sans-serif;min-height:100vh}main{max-width:1450px;margin:auto}header{text-align:center}h1{margin:0;font-size:clamp(24px,4vw,36px)}header p,.muted{color:#b8c5dc}.panel{background:#151f38;border:1px solid #405577;border-radius:13px;padding:13px;margin:10px 0}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}input,select{background:#0c1629;color:white;border:1px solid #7188b2;border-radius:8px;padding:10px;min-width:120px}button{border:1px solid #7188b2;border-radius:8px;padding:10px 13px;background:#31517f;color:white;font-weight:850;cursor:pointer}button:disabled{opacity:.4;cursor:not-allowed}.primary{background:#176b61}.danger{background:#793d53}.rooms{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:9px}.room{background:#0c1629;border:1px solid #526586;border-radius:10px;padding:10px}.room b{display:block}.room small{color:#b8c5dc}.room button{margin-top:8px;width:100%}.players{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.player{background:#151f38;border:1px solid #405577;border-radius:12px;text-align:center;padding:8px;min-width:0}.player.me{border-color:#75e6a2}.player h3{margin:3px;font-size:15px}.player canvas{width:min(100%,200px);height:auto;aspect-ratio:1/2;background:#080e1a;border:2px solid #526586;border-radius:6px}.stats{display:flex;justify-content:center;gap:18px;color:#b8c5dc}.stats b{color:white}.bar{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}.status{color:#ffdf87;font-weight:900}.ready-prompt{padding:10px 14px;border:2px solid #39c9e8;border-radius:10px;background:#0c2638;color:#7feaff;font-weight:950;text-align:center;box-shadow:0 0 14px #39c9e833}#toast{text-align:center;min-height:24px;color:#ffdf87;font-weight:850}.hidden{display:none!important}.scoreboard{width:100%;border-collapse:collapse}.scoreboard td,.scoreboard th{padding:7px;border-bottom:1px solid #405577;text-align:left}.scoreboard th{color:#b8c5dc}.note{font-size:12px;color:#aebbd3;line-height:1.5}
 @media(max-width:540px){body{padding:6px}.players{grid-template-columns:repeat(2,minmax(0,1fr))}.player canvas{width:100%}}
 
 .app-layout{display:grid;grid-template-columns:minmax(245px,310px) minmax(0,1fr);gap:14px;align-items:start;margin-top:12px}
@@ -99,6 +99,29 @@ header p{color:#d7e8ff}
  .left-stack .room-sidebar{max-height:none}
  .chat-log{height:150px}
 }
+
+/* V5 visual refresh: remove yellow/gold palette */
+body{background:radial-gradient(ellipse at 15% 0%,#263b62 0%,#111c32 48%,#080e1b 100%)!important;color:#edf4ff!important}
+header{background:linear-gradient(135deg,#142b4c,#10192b)!important;border:2px solid #38577f!important;box-shadow:0 5px 0 #070d18!important}
+.left-sidebar .panel,.game-main>.panel,.right-sidebar .panel{background:#14213a!important;color:#edf4ff!important;border:1px solid #38577f!important;box-shadow:0 4px 0 #080f1c!important}
+.room-sidebar,.featured-player{border-color:#3b638e!important}
+.room{background:#0b1629!important;border:1px solid #345275!important;color:#edf4ff!important}
+.featured-player{background:linear-gradient(160deg,#182b49,#111d32)!important;border:2px solid #38bdf8!important;box-shadow:0 5px 0 #0b1425!important}
+.you-tag{background:#087f8c!important;color:white!important}
+.featured-stats b{color:#67e8f9!important}
+.preview-box{border-color:#38577f!important;background:#080f1d!important}
+.preview-box h4{color:#67e8f9!important}
+.main-board-wrap{border-color:#456487!important;background:#070d18!important}
+.opponents-panel{background:#14213a!important;border:2px solid #456487!important;box-shadow:0 5px 0 #080f1c!important}
+.opponents-title{color:#edf4ff!important}
+.opponent{background:#101c31!important;border-color:#38577f!important}
+button{background:#263f65!important;border-color:#52749e!important;color:#fff!important}
+button.primary{background:#087f8c!important;border-color:#22b8c7!important}
+button.danger{background:#7b3450!important}
+#toast{background:#101f35!important;border:1px solid #3d668e!important;color:#8be9f5!important;padding:10px;border-radius:10px}
+#countdownNumber{color:#67e8f9!important;text-shadow:0 0 35px #0891b2!important}
+.scoreboard th{color:#9cc5e9!important}
+.scoreboard td,.scoreboard th{border-color:#304866!important}
 </style></head><body><div id="countdownOverlay"><div id="countdownNumber">3</div><div id="countdownCaption">БЭЛДЭЭРЭЙ!</div></div><main>
 <header><h1>🧱 ONLINE TETRIS</h1><p>2–6 хүн · Өрөөний жагсаалт · Тоглогчийн нэр · Дахин холбогдох</p></header>
 <section class="panel">
@@ -123,14 +146,14 @@ header p{color:#d7e8ff}
 <div class="game-main">
 
 <section class="panel">
- <div class="bar"><div>Өрөө: <b id="roomLabel">—</b> · Суудал: <b id="seatLabel">—</b> · <span id="net" class="status">Холбогдоогүй</span></div><div>⏱ <b id="time">00:00</b> · 👥 <b id="count">0 / 6</b></div><button id="start" disabled>▶ ЭХЛҮҮЛЭХ (3–2–1)</button></div>
+ <div class="bar"><div>Өрөө: <b id="roomLabel">—</b> · Суудал: <b id="seatLabel">—</b> · <span id="net" class="status">Холбогдоогүй</span></div><div>⏱ <b id="time">00:00</b> · 👥 <b id="count">0 / 6</b></div><div id="readyPrompt" class="ready-prompt">⏳ Өрөөнд орсон бүх тоглогч SPACE дарна уу (0/0)</div></div>
 </section>
 <div id="players" class="players"></div>
 
 <section class="panel"><div class="row"><button id="spectate" disabled>👀 Үзэгчээр нэгдэх</button><button id="rematch" disabled>🔄 Дахин тоглох санал</button><span id="votes" class="muted"></span></div></section>
 <section class="panel"><h3>🏆 Онооны хүснэгт</h3><table class="scoreboard"><thead><tr><th>#</th><th>Тоглогч</th><th>Оноо</th><th>Арилгасан мөр</th><th>Төлөв</th></tr></thead><tbody id="ranking"><tr><td colspan="5" class="muted">Тоглоом эхлээгүй байна.</td></tr></tbody></table></section>
 <div id="toast">Нэрээ оруулаад өрөө үүсгэх эсвэл жагсаалтаас сонгоно уу.</div>
-<p class="note">Удирдлага: A / D эсвэл ← / → — хөдлөх · W / ↑ — эргүүлэх · S / ↓ — доош · Space / Enter — шууд унагах · C / Shift — хадгалах.<br>Өрсөлдөгч мөр арилгахад бусад тоглогчдод саадтай мөр нэмэгдэнэ. Сүүлд үлдсэн тоглогч ялна.</p>
+<p class="note">Удирдлага: A / D эсвэл ← / → — хөдлөх · W / ↑ — эргүүлэх · S / ↓ — доош · Тоглоом эхлэхээс өмнө Space — бэлэн болох (бүгд дарсны дараа эхэлнэ) · Тоглож байх үед Space / Enter — шууд унагах · C / Shift — хадгалах.<br>Өрсөлдөгч мөр арилгахад бусад тоглогчдод саадтай мөр нэмэгдэнэ. Сүүлд үлдсэн тоглогч ялна.</p>
 </div>
 <aside class="right-sidebar">
  <section class="panel chat-sidebar">
@@ -161,7 +184,7 @@ const firebaseAuth=firebase.auth();
 const firebaseReady=firebaseAuth.signInAnonymously();
 const $=id=>document.getElementById(id), W=10,H=20,SHAPES=[
 {m:[[1,1,1,1]],c:"#36c9ed"},{m:[[1,1],[1,1]],c:"#f5d34f"},{m:[[0,1,0],[1,1,1]],c:"#a77bf5"},{m:[[1,0,0],[1,1,1]],c:"#4c83ed"},{m:[[0,0,1],[1,1,1]],c:"#ed9b45"},{m:[[0,1,1],[1,1,0]],c:"#58cf86"},{m:[[1,1,0],[0,1,1]],c:"#ef6680"}];
-let peer=null,connections=new Map(),spectators=new Set(),host=false,room="",seat=-1,players=[],started=false,over=false,elapsed=0,last=0,gameTimer=null,dirTimer=null,capacity=6,hostPeerId="",reconnectToken="",name=localStorage.getItem("ot_name")||"",hostConn=null,rematchVotes=new Set(),lastRoomPublish=0,lastRoomSignature="";
+let peer=null,connections=new Map(),spectators=new Set(),host=false,room="",seat=-1,players=[],started=false,over=false,elapsed=0,last=0,gameTimer=null,dirTimer=null,capacity=6,hostPeerId="",reconnectToken="",name=localStorage.getItem("ot_name")||"",hostConn=null,rematchVotes=new Set(),readyPlayers=new Set(),lastRoomPublish=0,lastRoomSignature="";
 $("name").value=name;$("welcome").textContent=name?"Сайн уу, "+name:"";
 const toast=t=>$("toast").textContent=t,rand=()=>Math.random().toString(36).slice(2,8).toUpperCase();
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -177,8 +200,8 @@ function piece(){return makePiece(randomShape())}
 function newPlayer(id,n,tok){let p={id,name:n,token:tok,grid:Array.from({length:H},()=>Array(W).fill(null)),nextQueue:Array.from({length:5},randomShape),piece:null,held:null,holdUsed:false,score:0,lines:0,drop:0,interval:650,alive:true,connected:true};p.piece=takeNext(p);return p}
 function send(c,m){if(c&&c.open)c.send(m)}
 function broadcast(){if(host){let packet={type:"state",data:snapshot()};connections.forEach(c=>send(c,packet));spectators.forEach(c=>send(c,packet))}render();checkWinner();publishRoom()}
-function snapshot(){return {players,started,over,elapsed,capacity,roomName:$("roomName").value||room}}
-function updateMeta(){$("spectate").disabled=!room||host;$("roomLabel").textContent=room||"—";$("seatLabel").textContent=seat<0?"—":seat+1;$("count").textContent=players.length+" / "+capacity;$("start").disabled=!(host&&players.length>=2&&!started);$("copy").disabled=!room;$("reconnect").disabled=!localStorage.getItem("ot_token")||host}
+function snapshot(){const alive=players.filter(p=>p.alive);return {players,started,over,elapsed,capacity,ready:[...readyPlayers],winnerName:alive.length===1?alive[0].name:(alive.length===0?"Тэнцлээ":""),roomName:$("roomName").value||room}}
+function updateMeta(){$("spectate").disabled=!room||host;$("roomLabel").textContent=room||"—";$("seatLabel").textContent=seat<0?"—":seat+1;$("count").textContent=players.length+" / "+capacity;const readyCount=players.filter(p=>p.connected&&readyPlayers.has(p.id)).length;const needed=players.filter(p=>p.connected).length;$("readyPrompt").textContent=over?"🏁 Раунд дууссан — Дахин тоглох санал товчийг дарна уу":started?"🎮 ТОГЛООМ ЭХЭЛЛЭЭ!":"⏳ Өрөөнд орсон бүх тоглогч SPACE дарна уу ("+readyCount+"/"+needed+")";$("copy").disabled=!room;$("reconnect").disabled=!localStorage.getItem("ot_token")||host}
 function miniPreview(shape){
  if(!shape)return '<span class="empty-preview">—</span>';
  let rows=shape.m.length,cols=shape.m[0].length;
@@ -215,8 +238,25 @@ function garbage(p,n){for(let k=0;k<n;k++){if(p.grid[0].some(Boolean)){p.alive=f
 function attack(p,n){players.filter(x=>x.alive&&x.id!==p.id).forEach(x=>garbage(x,Math.max(1,Math.floor(n/Math.max(1,players.length-1)))))}
 function lock(p){let q=p.piece;q.m.forEach((r,y)=>r.forEach((v,x)=>{if(v){let yy=q.y+y,xx=q.x+x;if(yy<0)p.alive=false;else p.grid[yy][xx]=q.c}}));let n=0;for(let y=H-1;y>=0;y--)if(p.grid[y].every(Boolean)){p.grid.splice(y,1);p.grid.unshift(Array(W).fill(null));n++;y++}if(n){p.lines+=n;p.score+=([0,100,300,500,800][n]||800);p.interval=Math.max(110,650-Math.floor(p.lines/5)*45);attack(p,n)}p.piece=takeNext(p);p.holdUsed=false;if(collide(p))p.alive=false}
 function action(id,a){let p=players.find(x=>x.id===id);if(!p||!p.alive||!started||over)return;if(a==="left"&&!collide(p,-1))p.piece.x--;if(a==="right"&&!collide(p,1))p.piece.x++;if(a==="rotate")rotate(p);if(a==="down"){if(!collide(p,0,1)){p.piece.y++;p.score++}else lock(p)}if(a==="drop"){while(!collide(p,0,1)){p.piece.y++;p.score+=2}lock(p)}if(a==="hold"&&!p.holdUsed){let cur={m:p.piece.m.map(r=>r.slice()),c:p.piece.c};if(p.held){let old=p.held;p.held={shapeIndex:cur.shapeIndex,m:cur.m.map(r=>r.slice()),c:cur.c};p.piece={...old,m:old.m.map(r=>r.slice()),x:3,y:0}}else{p.held={shapeIndex:cur.shapeIndex,m:cur.m.map(r=>r.slice()),c:cur.c};p.piece=takeNext(p)}p.holdUsed=true;if(collide(p))p.alive=false}}
-function checkWinner(){let alive=players.filter(p=>p.alive);if(started&&alive.length<=1){over=true;started=false;toast("🏆 "+(alive[0]?alive[0].name+" ЯЛЛАА!":"Бүгд ялагдлаа."));$("rematch").disabled=seat<0;broadcastEnd()}}
-function broadcastEnd(){connections.forEach(c=>send(c,{type:"state",data:snapshot()}))}
+function checkWinner(){
+ if(!host||!started||over)return;
+ const alive=players.filter(p=>p.alive);
+ if(players.length>=2&&players.length<=6&&alive.length<=1){
+  over=true;started=false;
+  const winnerName=alive.length===1?alive[0].name:"Тэнцлээ";
+  const message=alive.length===1?`🏆 ${winnerName} ЯЛАГЧ БОЛЛОО!`:"🤝 ТЭНЦЛЭЭ — Бүгд game over.";
+  toast(message);
+  $("rematch").disabled=false;
+  render();
+  broadcastEnd();
+  publishRoom(true);
+ }
+}
+function broadcastEnd(){
+ const packet={type:"state",data:snapshot()};
+ connections.forEach(c=>send(c,packet));
+ spectators.forEach(c=>send(c,packet));
+}
 function hostLoop(t){if(!host||!started||over)return;let dt=Math.min(100,t-last);last=t;elapsed+=dt;players.forEach(p=>{if(p.alive){p.drop+=dt;if(p.drop>=p.interval){p.drop=0;if(!collide(p,0,1))p.piece.y++;else lock(p)}}});$("time").textContent=fmt(elapsed);broadcast();gameTimer=setTimeout(()=>requestAnimationFrame(hostLoop),45)}
 function fmt(ms){let n=Math.floor(ms/1000);return String(Math.floor(n/60)).padStart(2,"0")+":"+String(n%60).padStart(2,"0")}
 async function publishRoom(force=false){
@@ -229,17 +269,24 @@ async function publishRoom(force=false){
  lastRoomSignature=signature;lastRoomPublish=now;
  try{await db("rooms/"+room,"PUT",{name:$("roomName").value||"Tetris өрөө",peerId:hostPeerId,count:players.length,spectators:spectators.size,capacity,status,updatedAt:now})}catch(e){console.warn("Room directory update failed",e)}
 }
-function setupHost(){host=true;seat=0;capacity=Number($("capacity").value);room=rand();hostPeerId="tetris-"+room.toLowerCase();reconnectToken=rand()+rand();localStorage.setItem("ot_token",reconnectToken);localStorage.setItem("ot_room",room);players=[newPlayer(0,name,reconnectToken)];connections=new Map();peer=new Peer(hostPeerId);peer.on("open",()=>{$("net").textContent="Өрөө нээлттэй";toast("Өрөө үүслээ. Код: "+room);updateMeta();publishRoom();listRooms()});peer.on("connection",c=>{c.on("data",m=>hostMessage(m,c));c.on("close",()=>{let pl=players.find(p=>p.token===c.token);if(pl){pl.connected=false;connections.delete(pl.id);broadcast()}})});peer.on("error",e=>toast("Peer холболтын алдаа: "+e.type));render()}
+function setupHost(){host=true;seat=0;capacity=Number($("capacity").value);room=rand();hostPeerId="tetris-"+room.toLowerCase();reconnectToken=rand()+rand();localStorage.setItem("ot_token",reconnectToken);localStorage.setItem("ot_room",room);players=[newPlayer(0,name,reconnectToken)];readyPlayers.clear();connections=new Map();peer=new Peer(hostPeerId);peer.on("open",()=>{$("net").textContent="Өрөө нээлттэй";toast("Өрөө үүслээ. Код: "+room);updateMeta();publishRoom();listRooms()});peer.on("connection",c=>{c.on("data",m=>hostMessage(m,c));c.on("close",()=>{let pl=players.find(p=>p.token===c.token);if(pl){pl.connected=false;readyPlayers.delete(pl.id);connections.delete(pl.id);broadcast()}})});peer.on("error",e=>toast("Peer холболтын алдаа: "+e.type));render()}
 function hostMessage(m,c){if(m.type==="spectate"){spectators.add(c);c.on("close",()=>{spectators.delete(c);publishRoom();$("spectatorLabel").textContent="Үзэгч: "+spectators.size});send(c,{type:"spectating",room,players,snapshot:snapshot()});send(c,{type:"state",data:snapshot()});$("spectatorLabel").textContent="Үзэгч: "+spectators.size;publishRoom();return}
 if(m.type==="chat"){let item={name:m.name||"Тоглогч",text:String(m.text||"").slice(0,180),at:Date.now()};connections.forEach(x=>send(x,{type:"chat",item}));spectators.forEach(x=>send(x,{type:"chat",item}));appendChat(item);return}
+if(m.type==="ready"){if(started||over||c.playerId!==m.seat)return;readyPlayers.add(m.seat);broadcast();const connected=players.filter(p=>p.connected);if(connected.length>=2&&connected.every(p=>readyPlayers.has(p.id)))beginCountdown();return}
 if(m.type==="rematch"){rematchVotes.add(m.seat);connections.forEach(x=>send(x,{type:"votes",votes:[...rematchVotes],total:players.filter(p=>p.connected).length}));if(host&&rematchVotes.size>=players.filter(p=>p.connected).length){resetRound();}return}
-if(m.type==="join"||m.type==="reconnect"){let tok=m.token||rand()+rand();let p=players.find(x=>x.token===tok);if(!p){if(players.length>=capacity){send(c,{type:"reject",reason:"Өрөө дүүрсэн"});return}p=newPlayer(players.length,m.name||"Тоглогч",tok);players.push(p)}else{p.connected=true}c.token=tok;c.playerId=p.id;connections.set(p.id,c);send(c,{type:"assigned",seat:p.id,token:tok,room,capacity,players,snapshot:snapshot()});broadcast();return}if(m.type==="action"&&c.playerId===m.seat){action(c.playerId,m.action);broadcast()}}
+if(m.type==="join"||m.type==="reconnect"){let tok=m.token||rand()+rand();let p=players.find(x=>x.token===tok);if(!p){if(players.length>=capacity){send(c,{type:"reject",reason:"Өрөө дүүрсэн"});return}p=newPlayer(players.length,m.name||"Тоглогч",tok);players.push(p);readyPlayers.clear()}else{p.connected=true}c.token=tok;c.playerId=p.id;connections.set(p.id,c);send(c,{type:"assigned",seat:p.id,token:tok,room,capacity,players,snapshot:snapshot()});broadcast();return}if(m.type==="action"&&c.playerId===m.seat){action(c.playerId,m.action);broadcast()}}
 function joinRoom(code,spectator=false){if(!needName())return;let info=window.__roomCache?.[code];if(!info&&DB){db("rooms/"+code).then(r=>connectTo(r,code,spectator)).catch(()=>toast("Өрөө олдсонгүй."));return}connectTo(info,code,spectator)}
 function connectTo(info,code,spectator=false){if(!info||!info.peerId){toast("Өрөө олдсонгүй эсвэл хаагдсан байна.");return}if(peer)peer.destroy();host=false;room=code;let token=localStorage.getItem("ot_token")||"";let isReconnect=localStorage.getItem("ot_room")===code&&!!token;peer=new Peer();peer.on("open",()=>{hostConn=peer.connect(info.peerId,{reliable:true});hostConn.on("open",()=>{hostConn.send(spectator?{type:"spectate"}:{type:isReconnect?"reconnect":"join",name,token});$("net").textContent="Холбогдож байна..." });hostConn.on("data",m=>clientMessage(m));hostConn.on("close",()=>{$("net").textContent="Холболт тасарсан";$("reconnect").disabled=false;toast("Холболт тасарлаа. Дахин холбогдох товчийг дарна уу.")})});peer.on("error",e=>toast("Холболтын алдаа: "+e.type))}
-function clientMessage(m){if(m.type==="countdown"){showCountdown(m.value,m.label);return}if(m.type==="countdownEnd"){hideCountdown();return}if(m.type==="chat"){appendChat(m.item);return}if(m.type==="votes"){$("votes").textContent="Дахин тоглох санал: "+m.votes.length+"/"+m.total;return}if(m.type==="spectating"){seat=-1;players=m.players;hostConn.spectator=true;$("net").textContent="Үзэгчээр холбогдсон";$("spectate").disabled=true;$("rematch").disabled=true;render();return}if(m.type==="reject"){toast(m.reason);return}if(m.type==="assigned"){seat=m.seat;reconnectToken=m.token;localStorage.setItem("ot_token",m.token);localStorage.setItem("ot_room",room);players=m.players;capacity=m.capacity;$("roomCode").value=room;$("net").textContent="Холбогдсон";toast("Өрөөнд амжилттай нэгдлээ.");render();return}if(m.type==="state"){players=m.data.players;started=m.data.started;over=m.data.over;elapsed=m.data.elapsed;capacity=m.data.capacity;$("time").textContent=fmt(elapsed);$("net").textContent=hostConn?.spectator?"Үзэж байна":"Холбогдсон";$("rematch").disabled=!over||seat<0;$("spectate").disabled=true;render()}}
+function clientMessage(m){if(m.type==="countdown"){showCountdown(m.value,m.label);return}if(m.type==="countdownEnd"){hideCountdown();return}if(m.type==="chat"){appendChat(m.item);return}if(m.type==="votes"){$("votes").textContent="Дахин тоглох санал: "+m.votes.length+"/"+m.total;return}if(m.type==="spectating"){seat=-1;players=m.players;hostConn.spectator=true;$("net").textContent="Үзэгчээр холбогдсон";$("spectate").disabled=true;$("rematch").disabled=true;render();return}if(m.type==="reject"){toast(m.reason);return}if(m.type==="assigned"){seat=m.seat;reconnectToken=m.token;localStorage.setItem("ot_token",m.token);localStorage.setItem("ot_room",room);players=m.players;capacity=m.capacity;readyPlayers=new Set(m.snapshot?.ready||[]);$("roomCode").value=room;$("net").textContent="Холбогдсон";toast("Өрөөнд амжилттай нэгдлээ.");render();return}if(m.type==="state"){
+ const wasOver=over;
+ players=m.data.players;started=m.data.started;over=m.data.over;elapsed=m.data.elapsed;capacity=m.data.capacity;readyPlayers=new Set(m.data.ready||[]);
+ $("time").textContent=fmt(elapsed);$("net").textContent=hostConn?.spectator?"Үзэж байна":"Холбогдсон";
+ $("rematch").disabled=!over||seat<0;$("spectate").disabled=true;render();
+ if(over&&!wasOver){const winner=m.data.winnerName||players.find(p=>p.alive)?.name;toast(winner&&winner!=="Тэнцлээ"?"🏆 "+winner+" ЯЛАГЧ БОЛЛОО!":"🤝 ТОГЛООМ ДУУСЛАА!")}
+}}
 function appendChat(item){let box=$("chatLog");if(box.textContent==="Чат эхлээгүй байна.")box.textContent="";let line=document.createElement("div");line.textContent=(item.name||"Тоглогч")+": "+item.text;box.appendChild(line);box.scrollTop=box.scrollHeight}
 function sendChat(){let text=$("chatInput").value.trim();if(!text)return;if(host){let item={name,text,at:Date.now()};appendChat(item);connections.forEach(c=>send(c,{type:"chat",item}));spectators.forEach(c=>send(c,{type:"chat",item}))}else send(hostConn,{type:"chat",name,text});$("chatInput").value=""}
-function resetRound(){players=players.map(p=>newPlayer(p.id,p.name,p.token));started=false;over=false;elapsed=0;rematchVotes.clear();$("votes").textContent="";$("time").textContent="00:00";toast("Шинэ раунд эхлэхэд бэлэн. Өрөөний эзэн эхлүүлнэ.");broadcast()}
+function resetRound(){players=players.map(p=>newPlayer(p.id,p.name,p.token));started=false;over=false;elapsed=0;readyPlayers.clear();rematchVotes.clear();$("votes").textContent="";$("time").textContent="00:00";toast("Шинэ раунд эхлэхэд бэлэн. Бүх тоглогч дахин тоглох санал өгнө.");broadcast()}
 $("sendChat").onclick=sendChat;$("chatInput").addEventListener("keydown",e=>{if(e.key==="Enter")sendChat()});
 $("spectate").onclick=()=>{let c=room||$("roomCode").value.trim().toUpperCase();if(!c)return toast("Өрөөний код оруулна уу.");if(!DB)return toast("Үзэгчээр орохын тулд Firebase тохируулна уу.");db("rooms/"+c).then(r=>connectTo(r,c,true)).catch(()=>toast("Өрөө олдсонгүй."))};
 $("rematch").onclick=()=>{if(seat<0)return;if(host){rematchVotes.add(seat);$("votes").textContent="Дахин тоглох санал: "+rematchVotes.size+"/"+players.filter(p=>p.connected).length;if(rematchVotes.size>=players.filter(p=>p.connected).length)resetRound()}else send(hostConn,{type:"rematch",seat})};
@@ -272,8 +319,8 @@ function showCountdown(value,label){
 }
 function hideCountdown(){$("countdownOverlay").classList.remove("show")}
 async function beginCountdown(){
- if(!host||players.length<2||started||starting)return;
- starting=true;over=false;$("start").disabled=true;
+ if(!host||players.filter(p=>p.connected).length<2||started||over||starting)return;
+ starting=true;over=false;
  for(const n of ["3","2","1","ЭХЭЛ!"]){
   showCountdown(n,n==="ЭХЭЛ!"?"АМЖИЛТ ХҮСЬЕ!":"ТОГЛОХОД БЭЛДЭЭРЭЙ");
   connections.forEach(c=>send(c,{type:"countdown",value:n,label:n==="ЭХЭЛ!"?"АМЖИЛТ ХҮСЬЕ!":"ТОГЛОХОД БЭЛДЭЭРЭЙ"}));
@@ -283,10 +330,10 @@ async function beginCountdown(){
  hideCountdown();connections.forEach(c=>send(c,{type:"countdownEnd"}));spectators.forEach(c=>send(c,{type:"countdownEnd"}));
  starting=false;started=true;elapsed=0;last=performance.now();toast("Тоглоом эхэллээ!");broadcast();requestAnimationFrame(hostLoop);
 }
-$("start").onclick=beginCountdown;
+function markReady(){if(seat<0||!room||started||over||starting)return;if(host){readyPlayers.add(seat);broadcast();const connected=players.filter(p=>p.connected);if(connected.length>=2&&connected.every(p=>readyPlayers.has(p.id)))beginCountdown();}else send(hostConn,{type:"ready",seat});toast("Бэлэн боллоо! Бусад тоглогч SPACE дарахыг хүлээж байна.");}
 const keyMap={KeyA:"left",ArrowLeft:"left",KeyD:"right",ArrowRight:"right",KeyW:"rotate",ArrowUp:"rotate",KeyS:"down",ArrowDown:"down",Space:"drop",Enter:"drop",KeyC:"hold",ShiftLeft:"hold",ShiftRight:"hold"};
 document.addEventListener("keydown",e=>{
- const a=keyMap[e.code];if(!a)return;e.preventDefault();
+ const a=keyMap[e.code];if(e.code==="Space"&&!started&&!over){e.preventDefault();markReady();return}if(!a)return;e.preventDefault();
  if(seat<0||!started)return;
  const repeatable=["left","right","down"].includes(a);
  if(e.repeat&&!repeatable)return;
