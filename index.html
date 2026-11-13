@@ -160,7 +160,6 @@ button.danger{background:#7b3450!important}
 <div id="players" class="players"></div><section id="finalResults" class="panel final-results hidden"></section>
 
 <section class="panel"><div class="row"><button id="spectate" disabled>👀 Үзэгчээр нэгдэх</button><button id="rematch" disabled>🔄 Дахин тоглох санал</button><span id="votes" class="muted"></span></div></section>
-<section class="panel"><h3>🏆 Онооны хүснэгт</h3><table class="scoreboard"><thead><tr><th>#</th><th>Тоглогч</th><th>Оноо</th><th>Арилгасан мөр</th><th>Төлөв</th></tr></thead><tbody id="ranking"><tr><td colspan="5" class="muted">Тоглоом эхлээгүй байна.</td></tr></tbody></table></section>
 <div id="toast">Нэрээ оруулаад өрөө үүсгэх эсвэл жагсаалтаас сонгоно уу.</div>
 <p class="note">Удирдлага: A / D эсвэл ← / → — хөдлөх · W / ↑ — эргүүлэх · S / ↓ — доош · Тоглоом эхлэхээс өмнө Space — бэлэн болох (бүгд дарсны дараа эхэлнэ) · Тоглож байх үед Space / Enter — шууд унагах · C / Shift — хадгалах.<br>Өрсөлдөгч мөр арилгахад бусад тоглогчдод саадтай мөр нэмэгдэнэ. Сүүлд үлдсэн тоглогч ялна.</p>
 </div>
@@ -273,8 +272,6 @@ function render(){
    <table><thead><tr><th>Байр</th><th>Тоглогч</th><th>Оноо</th><th>Мөр</th><th>Төлөв</th></tr></thead>
    <tbody>${finalResults.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.name)}</td><td>${p.score}</td><td>${p.lines}</td><td>${i===0?"ЯЛАГЧ":"Тоглолт дууссан"}</td></tr>`).join("")}</tbody></table>`;
  }else{resultsBox.classList.add("hidden");resultsBox.innerHTML=""}
- let sorted=[...players].sort((a,b)=>b.score-a.score);
- $("ranking").innerHTML=sorted.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.name)}</td><td>${p.score}</td><td>${p.lines}</td><td>${p.alive?(p.connected?"Тоглож байна":"Холболт тасарсан"):"Ялагдсан"}</td></tr>`).join("")||'<tr><td colspan="5">Тоглогч алга.</td></tr>';
 }
 function draw(p,i){
  let cv=$("cv"+i),c=cv?.getContext("2d");if(!c)return;
@@ -430,6 +427,8 @@ function requestRematch(){
 function markReady(){if(seat<0||!room||started||over||starting)return;if(host){readyPlayers.add(seat);broadcast();const connected=players.filter(p=>p.connected);if(connected.length>=2&&connected.every(p=>readyPlayers.has(p.id)))beginCountdown();}else send(hostConn,{type:"ready",seat});toast("Бэлэн боллоо! Бусад тоглогч SPACE дарахыг хүлээж байна.");}
 const keyMap={KeyA:"left",ArrowLeft:"left",KeyD:"right",ArrowRight:"right",KeyW:"rotate",ArrowUp:"rotate",KeyS:"down",ArrowDown:"down",Space:"drop",Enter:"drop",KeyC:"hold",ShiftLeft:"hold",ShiftRight:"hold"};
 document.addEventListener("keydown",e=>{
+ const target=e.target;
+ if(target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
  const a=keyMap[e.code];if(e.code==="Space"&&over){e.preventDefault();requestRematch();return}if(e.code==="Space"&&!started&&!over){e.preventDefault();markReady();return}if(!a)return;e.preventDefault();
  if(seat<0||!started)return;
  const repeatable=["left","right","down"].includes(a);
