@@ -197,7 +197,7 @@ const GLOBAL_ROOM="GLOBAL10";
 const WS_URL="wss://glistening-imagination-production-018b15a6.up.railway.app/ws";
 let wsSocket=null, wsClientId="", wsRole="", wsAdapters=new Map();
 let lastGlobalSnapshot=null, globalRetryTimer=null;
-let audioOn=true,audioCtx=null,finalResults=[],peer=null,connections=new Map(),spectators=new Set(),waitingConnections=new Map(),waitingPlayers=[],host=false,room="",seat=-1,players=[],started=false,over=false,elapsed=0,last=0,gameTimer=null,dirTimer=null,capacity=10,hostPeerId=GLOBAL_HOST_ID,reconnectToken="",name=localStorage.getItem("ot_name")||"",hostConn=null,rematchVotes=new Set(),readyPlayers=new Set(),lastRoomPublish=0,lastRoomSignature="";
+let audioOn=true,audioCtx=null,finalResults=[],peer=null,connections=new Map(),spectators=new Set(),waitingConnections=new Map(),waitingPlayers=[],host=false,room="",seat=-1,players=[],started=false,over=false,elapsed=0,last=0,gameTimer=null,dirTimer=null,capacity=10,hostPeerId="railway-host",reconnectToken="",name=localStorage.getItem("ot_name")||"",hostConn=null,rematchVotes=new Set(),readyPlayers=new Set(),lastRoomPublish=0,lastRoomSignature="";
 $("name").value=name;$("welcome").textContent=name?"Сайн уу, "+name:"";
 const toast=t=>$("toast").textContent=t,rand=()=>Math.random().toString(36).slice(2,8).toUpperCase();
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
