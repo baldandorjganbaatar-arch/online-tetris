@@ -74,6 +74,31 @@ header p{color:#d7e8ff}
 #toast{color:#1b2639;background:#fff2b5;border:1px solid #e6a900;border-radius:10px;padding:8px}
 @media(max-width:1050px){#players{grid-template-columns:1fr}.opponents-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:700px){.app-layout{grid-template-columns:1fr}.left-sidebar{position:static}.room-sidebar{max-height:none}#players{grid-template-columns:1fr}.board-layout{grid-template-columns:65px minmax(150px,1fr) 78px}.featured-player canvas{width:min(100%,250px)}.mobile-actions{display:grid}.opponents-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Layout update: create-room above directory; chat in right rail */
+.app-layout{grid-template-columns:minmax(245px,285px) minmax(0,1fr) minmax(235px,285px);gap:12px}
+.left-sidebar{position:sticky;top:10px}
+.left-stack{display:flex;flex-direction:column;gap:10px}
+.left-stack>.panel{margin:0}
+.left-stack .room-sidebar{max-height:calc(100vh - 300px);overflow:auto}
+.right-sidebar{position:sticky;top:10px;min-width:0}
+.chat-sidebar{margin:0;max-height:calc(100vh - 20px);display:flex;flex-direction:column;min-height:300px}
+.chat-log{height:min(55vh,520px);min-height:180px;overflow:auto;background:#080e19;border:1px solid #405577;border-radius:10px;padding:10px;margin:8px 0;color:#eef4ff;font-size:13px;overflow-wrap:anywhere}
+.chat-compose{display:flex;gap:6px}
+.chat-compose input{min-width:0;width:100%;flex:1}
+.chat-compose button{flex:0 0 auto}
+@media(max-width:1120px){
+ .app-layout{grid-template-columns:minmax(220px,270px) minmax(0,1fr)}
+ .right-sidebar{position:static;grid-column:1 / -1}
+ .chat-sidebar{max-height:none;min-height:0}
+ .chat-log{height:180px;min-height:120px}
+}
+@media(max-width:760px){
+ .app-layout{grid-template-columns:1fr}
+ .left-sidebar,.right-sidebar{position:static;grid-column:auto}
+ .left-stack .room-sidebar{max-height:none}
+ .chat-log{height:150px}
+}
 </style></head><body><div id="countdownOverlay"><div id="countdownNumber">3</div><div id="countdownCaption">БЭЛДЭЭРЭЙ!</div></div><main>
 <header><h1>🧱 ONLINE TETRIS</h1><p>2–6 хүн · Өрөөний жагсаалт · Тоглогчийн нэр · Дахин холбогдох</p></header>
 <section class="panel">
@@ -82,32 +107,39 @@ header p{color:#d7e8ff}
 
 <div class="app-layout">
 <aside class="left-sidebar">
+ <div class="left-stack">
+ <section class="panel">
+ <h3>🏠 Өрөө үүсгэх / нэгдэх</h3><div class="row"><label>Өрөөний нэр <input id="roomName" maxlength="24" placeholder="Жишээ: Найзууд"></label><label>Хүний тоо <select id="capacity"><option>2</option><option>3</option><option>4</option><option>5</option><option selected>6</option></select></label><button id="create" class="primary">Өрөө үүсгэх</button></div>
+ <div class="row" style="margin-top:9px"><label>Өрөөний код <input id="roomCode" maxlength="8" placeholder="КОД"></label><button id="join">Кодоор нэгдэх</button><button id="copy" disabled>Код хуулах</button><button id="reconnect" disabled>↪ Дахин холбогдох</button></div>
+</section>
  <section class="panel room-sidebar">
   <h3>🌐 Өрөөнүүд</h3>
   <button id="refresh" class="refresh-btn">↻ Жагсаалт шинэчлэх</button>
   <div id="directoryState" class="muted directory-state">Өгөгдлийн сан тохируулаагүй</div>
   <div id="rooms" class="rooms"><p class="muted">Өрөөний жагсаалтыг ачаалж байна...</p></div>
  </section>
+ </div>
 </aside>
 <div class="game-main">
-<section class="panel">
- <h3>🏠 Өрөө үүсгэх / нэгдэх</h3><div class="row"><label>Өрөөний нэр <input id="roomName" maxlength="24" placeholder="Жишээ: Найзууд"></label><label>Хүний тоо <select id="capacity"><option>2</option><option>3</option><option>4</option><option>5</option><option selected>6</option></select></label><button id="create" class="primary">Өрөө үүсгэх</button></div>
- <div class="row" style="margin-top:9px"><label>Өрөөний код <input id="roomCode" maxlength="8" placeholder="КОД"></label><button id="join">Кодоор нэгдэх</button><button id="copy" disabled>Код хуулах</button><button id="reconnect" disabled>↪ Дахин холбогдох</button></div>
-</section>
+
 <section class="panel">
  <div class="bar"><div>Өрөө: <b id="roomLabel">—</b> · Суудал: <b id="seatLabel">—</b> · <span id="net" class="status">Холбогдоогүй</span></div><div>⏱ <b id="time">00:00</b> · 👥 <b id="count">0 / 6</b></div><button id="start" disabled>▶ ЭХЛҮҮЛЭХ (3–2–1)</button></div>
 </section>
 <div id="players" class="players"></div>
-<section class="panel">
- <div class="bar"><h3>💬 Өрөөний чат</h3><span class="muted" id="spectatorLabel">Үзэгч: 0</span></div>
- <div id="chatLog" style="height:130px;overflow:auto;background:#0c1629;border-radius:8px;padding:8px;margin:8px 0;font-size:13px">Чат эхлээгүй байна.</div>
- <div class="row"><input id="chatInput" maxlength="180" placeholder="Мессеж бичих..." style="flex:1"><button id="sendChat">Илгээх</button></div>
-</section>
+
 <section class="panel"><div class="row"><button id="spectate" disabled>👀 Үзэгчээр нэгдэх</button><button id="rematch" disabled>🔄 Дахин тоглох санал</button><span id="votes" class="muted"></span></div></section>
 <section class="panel"><h3>🏆 Онооны хүснэгт</h3><table class="scoreboard"><thead><tr><th>#</th><th>Тоглогч</th><th>Оноо</th><th>Арилгасан мөр</th><th>Төлөв</th></tr></thead><tbody id="ranking"><tr><td colspan="5" class="muted">Тоглоом эхлээгүй байна.</td></tr></tbody></table></section>
 <div id="toast">Нэрээ оруулаад өрөө үүсгэх эсвэл жагсаалтаас сонгоно уу.</div>
 <p class="note">Удирдлага: A / D эсвэл ← / → — хөдлөх · W / ↑ — эргүүлэх · S / ↓ — доош · Space / Enter — шууд унагах · C / Shift — хадгалах.<br>Өрсөлдөгч мөр арилгахад бусад тоглогчдод саадтай мөр нэмэгдэнэ. Сүүлд үлдсэн тоглогч ялна.</p>
-</div></div>
+</div>
+<aside class="right-sidebar">
+ <section class="panel chat-sidebar">
+  <div class="bar"><h3>💬 Өрөөний чат</h3><span class="muted" id="spectatorLabel">Үзэгч: 0</span></div>
+  <div id="chatLog" class="chat-log">Чат эхлээгүй байна.</div>
+  <div class="chat-compose"><input id="chatInput" maxlength="180" placeholder="Мессеж бичих..."><button id="sendChat">Илгээх</button></div>
+ </section>
+</aside>
+</div>
 </main>
 <script>
 /* FIREBASE CONFIG: paste your Firebase Web App config here.
