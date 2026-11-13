@@ -145,6 +145,7 @@ button.danger{background:#7b3450!important}
    <p class="note">Өрөө үүсгэх, код оруулах шаардлагагүй. Нэрээ хадгалаад JOIN дарж нийтлэг тоглолтод нэгдэнэ.</p>
    <button id="joinGlobal" class="primary" style="width:100%">▶ JOIN — ТОГЛОЛТОД НЭГДЭХ</button>
    <button id="leaveGlobal" class="danger" style="width:100%;margin-top:8px" disabled>Гарах</button>
+   <button id="soloGame" style="width:100%;margin-top:8px">🎮 ГАНЦААРАА ТОГЛОХ</button>
    <div id="directoryState" class="muted directory-state" style="margin-top:10px">Холбогдоогүй</div>
   </section>
   <section class="panel room-sidebar">
@@ -302,7 +303,7 @@ function becomeWebSocketHost(seed){
 function snapshot(){const joined=players.filter(p=>p.connected&&p.token);const alive=joined.filter(p=>p.alive);return {players,started,over,elapsed,capacity,ready:[...readyPlayers],rematchVotes:[...rematchVotes],waitingPlayers:waitingPlayers.map(w=>({name:w.name,token:w.token})),finalResults,winnerName:alive.length===1?alive[0].name:(alive.length===0?"Тэнцлээ":""),roomName:"Нийтлэг тоглолт"}}
 function updateMeta(){
  $("spectate").disabled=true;
- $("roomLabel").textContent=room?"Нийтлэг тоглолт":"—";
+ $("roomLabel").textContent=soloMode?"Ганцаарчилсан":(room?"Нийтлэг тоглолт":"—");
  $("seatLabel").textContent=seat<0?"—":seat+1;
  $("count").textContent=players.filter(p=>p.connected).length+" / "+capacity;
  const readyCount=players.filter(p=>p.connected&&readyPlayers.has(p.id)).length;
@@ -476,7 +477,7 @@ function broadcastEnd(){
  connections.forEach(c=>send(c,packet));
  spectators.forEach(c=>send(c,packet));
 }
-function hostLoop(t){if(!host||!started||over)return;let dt=Math.min(100,t-last);last=t;elapsed+=dt;players.forEach(p=>{if(p.connected&&p.alive){p.drop+=dt;if(p.drop>=p.interval){p.drop=0;if(!collide(p,0,1))p.piece.y++;else lock(p)}}});$("time").textContent=fmt(elapsed);broadcast(false);gameTimer=setTimeout(()=>requestAnimationFrame(hostLoop),45)}
+function hostLoop(t){if(!host||!started||over)return;let dt=Math.min(100,t-last);last=t;elapsed+=dt;players.forEach(p=>{if(p.connected&&p.alive){p.drop+=dt;if(p.drop>=p.interval){p.drop=0;if(!collide(p,0,1))p.piece.y++;else lock(p)}}});if(soloMode&&players[0]&&!players[0].alive){started=false;over=true;finalResults=[{id:0,name:players[0].name,score:players[0].score,lines:players[0].lines,alive:false}];$("readyPrompt").textContent="🏁 GAME OVER · Дахин эхлүүлэх товч дарна уу";$("soloGame").textContent="↻ ДАХИН ЭХЛҮҮЛЭХ"}$("time").textContent=fmt(elapsed);broadcast(false);if(started)gameTimer=setTimeout(()=>requestAnimationFrame(hostLoop),45)}
 function fmt(ms){let n=Math.floor(ms/1000);return String(Math.floor(n/60)).padStart(2,"0")+":"+String(n%60).padStart(2,"0")}
 async function publishRoom(force=false){
  if(!host||!DB||!room)return;
@@ -542,7 +543,7 @@ function resetRound(){
 }
 $("sendChat").onclick=sendChat;$("chatInput").addEventListener("keydown",e=>{if(e.key==="Enter")sendChat()});
 $("spectate").onclick=()=>{let c=room||$("roomCode").value.trim().toUpperCase();if(!c)return toast("Өрөөний код оруулна уу.");if(!DB)return toast("Үзэгчээр орохын тулд Firebase тохируулна уу.");db("rooms/"+c).then(r=>connectTo(r,c,true)).catch(()=>toast("Өрөө олдсонгүй."))};
-$("rematch").onclick=()=>{if(seat<0||!over)return;if(host){rematchVotes.add(seat);broadcast(true);if(rematchVotes.size>=players.filter(p=>p.connected).length)resetRound()}else send(hostConn,{type:"rematch",seat})};
+$("rematch").onclick=()=>{if(soloMode){startSolo();return}if(seat<0||!over)return;if(host){rematchVotes.add(seat);broadcast(true);if(rematchVotes.size>=players.filter(p=>p.connected).length)resetRound()}else send(hostConn,{type:"rematch",seat})};
 function performAction(a){
  if(seat<0||!started)return;
  if(a==="left"||a==="right"||a==="down")soundEvent("move");else if(a==="rotate")soundEvent("rotate");else if(a==="drop")soundEvent("drop");
@@ -563,6 +564,23 @@ window.addEventListener("blur",stopMobileRepeat);
 document.addEventListener("visibilitychange",()=>{if(document.hidden)stopMobileRepeat()});
 
 function globalToken(){let t=localStorage.getItem("ot_token");if(!t){t=rand()+rand();localStorage.setItem("ot_token",t)}return t}
+function startSolo(){
+ if(wsSocket){try{wsSocket.close()}catch(e){}wsSocket=null}
+ clearTimeout(globalRetryTimer);clearTimeout(gameTimer);
+ soloMode=true;host=true;room="SOLO";capacity=1;seat=0;hostConn=null;
+ connections=new Map();spectators=new Set();waitingConnections=new Map();waitingPlayers=[];
+ const tok="solo-"+Date.now();
+ players=[newPlayer(0,name||"Тоглогч",tok)];
+ started=true;over=false;elapsed=0;finalResults=[];
+ readyPlayers.clear();rematchVotes.clear();starting=false;
+ last=performance.now();lastStateBroadcast=0;
+ $("net").textContent="Ганцаарчилсан тоглолт";
+ $("directoryState").textContent="Интернет шаардлагагүй · Ганцаараа тоглож байна";
+ $("joinGlobal").disabled=false;$("leaveGlobal").disabled=false;
+ $("soloGame").textContent="↻ ГАНЦААРЧИЛСАН ДАХИН ЭХЛҮҮЛЭХ";
+ $("readyPrompt").textContent="🎮 Ганцаарчилсан тоглолт эхэллээ!";
+ hideCountdown();render();requestAnimationFrame(hostLoop);
+}
 function joinGlobal(){
  if(!needName())return;
  if(room){toast("Та аль хэдийн нийтлэг тоглолтод нэгдсэн байна.");return}
@@ -578,9 +596,10 @@ function joinGlobal(){
 }
 function scheduleGlobalRetry(){toast("Сервертэй холболт тасарсан. Дахин JOIN хийнэ үү.")}
 $("joinGlobal").onclick=joinGlobal;
+$("soloGame").onclick=()=>startSolo();
 $("leaveGlobal").onclick=()=>{
  if(wsSocket){try{wsSocket.close()}catch(e){}}
- clearTimeout(globalRetryTimer);host=false;room="";seat=-1;hostConn=null;players=[];waitingPlayers=[];waitingConnections.clear();wsAdapters.clear();started=false;over=false;
+ clearTimeout(globalRetryTimer);soloMode=false;host=false;room="";seat=-1;hostConn=null;players=[];waitingPlayers=[];waitingConnections.clear();wsAdapters.clear();started=false;over=false;
  $("net").textContent="Холбогдоогүй";$("directoryState").textContent="Тоглолтоос гарсан";render();
 };
 let starting=false;
