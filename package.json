@@ -1,8 +1,8 @@
 {
   "name": "online-tetris-server",
-  "version": "1.0.0",
+  "version": "1.7.0",
   "private": true,
-  "description": "WebSocket lobby and game coordination server for Online Tetris",
+  "description": "Server-authoritative 10-player Online Tetris",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

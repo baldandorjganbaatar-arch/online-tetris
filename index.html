@@ -244,13 +244,13 @@ function makeHostAdapter(peerId){
 function wsSend(obj){if(wsSocket?.readyState===WebSocket.OPEN)wsSocket.send(JSON.stringify(obj))}
 function onServerMessage(m){
  if(m.type==="chat"){appendChat(m.item);return}
+ if(["assigned","state","waiting","countdown","countdownEnd","votes","reject"].includes(m.type)){clientMessage(m);return}
  if(m.type==="welcome"){
   wsClientId=m.clientId;wsRole=m.role;
-  if(m.role==="host"){
-   becomeWebSocketHost(m.state||null);
-  }else if(m.role==="client"){
+  if(m.role==="client" || m.role==="server"){
+   host=false;
    hostConn={kind:"server-host",open:true,send:(data)=>send(hostConn,data)};
-   $("net").textContent="Холбогдож байна...";
+   $("net").textContent="Railway серверт холбогдож байна...";
   }else if(m.role==="waiting"){
    room=GLOBAL_ROOM;capacity=10;seat=-1;
    $("net").textContent="Дараагийн тоглолтыг хүлээж байна";

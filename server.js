@@ -1,79 +1,34 @@
-"use strict";
-const http=require("http");
-const crypto=require("crypto");
+ "use strict";
+const http=require("http"),crypto=require("crypto");
 const {WebSocketServer,WebSocket}=require("ws");
-const PORT=Number(process.env.PORT||3000);
-const MAX=10;
-const clients=new Map();
-let host=null,hostId=null,lastState=null,phase="lobby";
-const server=http.createServer((req,res)=>{
- const path=new URL(req.url,"http://localhost").pathname;
- if(path==="/health"){res.writeHead(200,{"content-type":"application/json"});return res.end(JSON.stringify({ok:true,service:"online-tetris",players:clients.size,phase,host:!!host}))}
- res.writeHead(200,{"content-type":"text/plain"});res.end("Online Tetris WebSocket server is running.\n");
-});
+const PORT=Number(process.env.PORT||3000),MAX=10,W=10,H=20;
+const SHAPES=[{m:[[1,1,1,1]],c:"#36c9ed"},{m:[[1,1],[1,1]],c:"#f5d34f"},{m:[[0,1,0],[1,1,1]],c:"#a77bf5"},{m:[[1,0,0],[1,1,1]],c:"#4c83ed"},{m:[[0,0,1],[1,1,1]],c:"#ed9b45"},{m:[[0,1,1],[1,1,0]],c:"#58cf86"},{m:[[1,1,0],[0,1,1]],c:"#ef6680"}];
+const clients=new Map();let players=[],waiting=[],ready=new Set(),rematch=new Set(),started=false,over=false,elapsed=0,phase="lobby",countdown=false,countdownTimer=null,lastTick=Date.now(),finalResults=[];
+const now=()=>Date.now(),rand=()=>crypto.randomBytes(8).toString("hex");
+const server=http.createServer((req,res)=>{const path=new URL(req.url,"http://localhost").pathname;if(path==="/health"){res.writeHead(200,{"content-type":"application/json"});return res.end(JSON.stringify({ok:true,service:"online-tetris-v17",players:[...clients.values()].filter(c=>c.joined).length,phase,host:"server",authoritative:true,waiting:waiting.length}))}res.writeHead(200,{"content-type":"text/plain"});res.end("Online Tetris V17 authoritative server is running.\n")});
 const wss=new WebSocketServer({server,path:"/ws"});
-function send(ws,obj){if(ws&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify(obj))}
-function relayToHost(obj){send(host,obj)}
-function electHost(){
- const next=[...clients.entries()].find(([ws,c])=>ws!==host&&c.joined&&!c.waiting);
- if(!next){host=null;hostId=null;phase="lobby";return}
- host=next[0];hostId=next[1].id;next[1].role="host";
- send(host,{type:"welcome",clientId:hostId,role:"host",state:lastState});
- for(const [ws,c] of clients){if(ws!==host&&c.joined&&!c.waiting)send(host,{type:"peer:join",peerId:c.id,name:c.name,token:c.token})}
-}
-function drop(ws){
- const c=clients.get(ws);if(!c)return;
- clients.delete(ws);
- if(c.joined&&ws!==host&&host)send(host,{type:"peer:left",peerId:c.id});
- if(ws===host){host=null;hostId=null;electHost()}
-}
-wss.on("connection",ws=>{
- const c={id:crypto.randomUUID(),name:"Player",token:"",joined:false,role:""};
- clients.set(ws,c);
- send(ws,{type:"connected",clientId:c.id,maxPlayers:MAX});
- ws.on("message",raw=>{
-  let m;try{m=JSON.parse(raw.toString())}catch{return send(ws,{type:"error",message:"Invalid JSON"})}
-  if(m.type==="join"&&!c.joined){
-   c.name=String(m.name||"Player").trim().slice(0,24)||"Player";c.token=String(m.token||"").slice(0,100);c.joined=true;
-   if(!host){
-    c.role="host";host=ws;hostId=c.id;phase="lobby";
-    send(ws,{type:"welcome",clientId:c.id,role:"host",state:lastState});
-   }else{
-    const count=[...clients.values()].filter(x=>x.joined).length;
-    if(count>MAX){clients.delete(ws);c.joined=false;return send(ws,{type:"error",message:"Нийтлэг тоглолт 10 хүнээр дүүрсэн."})}
-    c.role="client";
-    send(ws,{type:"welcome",clientId:c.id,role:"client"});
-    send(host,{type:"peer:join",peerId:c.id,name:c.name,token:c.token});
-   }
-   return;
-  }
-  if(!c.joined)return send(ws,{type:"error",message:"Эхлээд JOIN хийнэ үү."});
-  if(m.type==="toHost"&&ws!==host){send(host,{type:"peer:data",peerId:c.id,data:m.data});return}
-  if(m.type==="toPeer"&&ws===host){const target=[...clients.entries()].find(([,x])=>x.id===m.peerId);if(target)send(target[0],{type:"peer:data",peerId:hostId,data:m.data});return}
-  if(m.type==="hostState"&&ws===host){
-   lastState=m.state||null;
-   phase=lastState?.started?"playing":lastState?.over?"finished":"lobby";
-   // Relay the authoritative host snapshot to every connected player.
-   for(const [clientWs,client] of clients){
-    if(clientWs!==host && client.joined && !client.waiting){
-     send(clientWs,{type:"peer:data",peerId:hostId,data:{type:"state",data:lastState}});
-    }
-   }
-   return;
-  }
-  if(m.type==="chat"){
-   const item={name:c.name||"Тоглогч",text:String(m.text||"").trim().slice(0,180),at:Date.now()};
-   if(!item.text)return;
-   for(const [clientWs,client] of clients){
-    if(client.joined)send(clientWs,{type:"chat",item});
-   }
-   return;
-  }
-  if(m.type==="ping")send(ws,{type:"pong",at:Date.now()});
- });
- ws.on("close",()=>drop(ws));ws.on("error",()=>drop(ws));
-});
-const heartbeat=setInterval(()=>{for(const ws of wss.clients){if(ws.isAlive===false){ws.terminate();continue}ws.isAlive=false;ws.ping()}},25000);
-wss.on("connection",ws=>{ws.isAlive=true;ws.on("pong",()=>ws.isAlive=true)});
-server.listen(PORT,"0.0.0.0",()=>console.log("Online Tetris WebSocket server listening on "+PORT));
-process.on("SIGTERM",()=>{clearInterval(heartbeat);for(const ws of wss.clients)ws.close(1001,"Server shutting down");server.close(()=>process.exit(0))});
+function send(ws,o){if(ws&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify(o))}
+function sendClient(c,o){if(c)send(c.ws,{type:"peer:data",peerId:"railway-server",data:o})}
+function snapshot(){const joined=players.filter(p=>p.connected&&p.token),alive=joined.filter(p=>p.alive);return {players:players.map(p=>({...p,grid:p.grid.map(r=>r.slice()),piece:p.piece?{...p.piece,m:p.piece.m.map(r=>r.slice())}:null})),started,over,elapsed,capacity:MAX,ready:[...ready],rematchVotes:[...rematch],waitingPlayers:waiting.map(w=>({name:w.name,token:w.token})),finalResults,winnerName:alive.length===1?alive[0].name:(alive.length===0?"Тэнцлээ":""),roomName:"Нийтлэг тоглолт"}}
+function broadcast(){const s=snapshot();for(const c of clients.values())if(c.joined)sendClient(c,{type:"state",data:s})}
+function randomShape(){return Math.floor(Math.random()*SHAPES.length)}
+function makePiece(i){const s=SHAPES[i];return {shapeIndex:i,m:s.m.map(r=>r.slice()),c:s.c,x:3,y:0}}
+function takeNext(p){if(!p.nextQueue||!p.nextQueue.length)p.nextQueue=Array.from({length:5},randomShape);const i=p.nextQueue.shift();p.nextQueue.push(randomShape());return makePiece(i)}
+function newPlayer(id,name,token){const p={id,name,token,grid:Array.from({length:H},()=>Array(W).fill(null)),nextQueue:Array.from({length:5},randomShape),piece:null,held:null,holdUsed:false,score:0,lines:0,drop:0,interval:650,alive:true,connected:true};p.piece=takeNext(p);return p}
+function collide(p,dx=0,dy=0,m=p.piece.m){for(let y=0;y<m.length;y++)for(let x=0;x<m[y].length;x++)if(m[y][x]){const xx=p.piece.x+x+dx,yy=p.piece.y+y+dy;if(xx<0||xx>=W||yy>=H||(yy>=0&&p.grid[yy][xx]))return true}return false}
+function rotate(p){const m=p.piece.m,r=m[0].map((_,i)=>m.map(row=>row[i]).reverse());if(!collide(p,0,0,r))p.piece.m=r;else if(!collide(p,1,0,r)){p.piece.x++;p.piece.m=r}else if(!collide(p,-1,0,r)){p.piece.x--;p.piece.m=r}}
+function garbage(p,n){for(let k=0;k<n;k++){if(p.grid[0].some(Boolean)){p.alive=false;return}p.grid.shift();const hole=Math.floor(Math.random()*W);p.grid.push(Array.from({length:W},(_,x)=>x===hole?null:"#68758e"))}}
+function attack(p,n){const targets=players.filter(x=>x.connected&&x.alive&&x.id!==p.id);targets.forEach(x=>garbage(x,Math.max(1,Math.floor(n/Math.max(1,players.length-1)))))}
+function lock(p){const q=p.piece;q.m.forEach((r,y)=>r.forEach((v,x)=>{if(v){const yy=q.y+y,xx=q.x+x;if(yy<0)p.alive=false;else p.grid[yy][xx]=q.c}}));let n=0;for(let y=H-1;y>=0;y--)if(p.grid[y].every(Boolean)){p.grid.splice(y,1);p.grid.unshift(Array(W).fill(null));n++;y++}if(n){p.lines+=n;p.score+=([0,100,300,500,800][n]||800);p.interval=Math.max(110,650-Math.floor(p.lines/5)*45);attack(p,n)}p.piece=takeNext(p);p.holdUsed=false;if(collide(p))p.alive=false}
+function act(p,a){if(!p||!p.alive||!started||over)return;if(a==="left"&&!collide(p,-1))p.piece.x--;else if(a==="right"&&!collide(p,1))p.piece.x++;else if(a==="rotate")rotate(p);else if(a==="down"){if(!collide(p,0,1)){p.piece.y++;p.score++}else lock(p)}else if(a==="drop"){while(!collide(p,0,1)){p.piece.y++;p.score+=2}lock(p)}else if(a==="hold"&&!p.holdUsed){const cur={shapeIndex:p.piece.shapeIndex,m:p.piece.m.map(r=>r.slice()),c:p.piece.c};if(p.held){const old=p.held;p.held=cur;p.piece={...old,m:old.m.map(r=>r.slice()),x:3,y:0}}else{p.held=cur;p.piece=takeNext(p)}p.holdUsed=true;if(collide(p))p.alive=false}}
+function checkWinner(){if(!started||over)return;const joined=players.filter(p=>p.connected&&p.token),alive=joined.filter(p=>p.alive);if(joined.length>=2&&alive.length<=1){over=true;started=false;phase="finished";finalResults=[...joined].sort((a,b)=>Number(b.alive)-Number(a.alive)||b.score-a.score||b.lines-a.lines).map(p=>({id:p.id,name:p.name,score:p.score,lines:p.lines,alive:p.alive}));broadcast()}}
+function beginCountdown(){if(countdown||started||over)return;const joined=players.filter(p=>p.connected);if(joined.length<2||!joined.every(p=>ready.has(p.id)))return;countdown=true;let n=3;const step=()=>{if(!countdown)return;const value=n===0?"ЭХЭЛ!":String(n);for(const c of clients.values())if(c.joined)sendClient(c,{type:"countdown",value,label:value==="ЭХЭЛ!"?"АМЖИЛТ ХҮСЬЕ!":"ТОГЛОХОД БЭЛДЭЭРЭЙ"});if(n===0){countdown=false;started=true;over=false;elapsed=0;phase="playing";lastTick=now();for(const c of clients.values())if(c.joined)sendClient(c,{type:"countdownEnd"});broadcast();return}n--;countdownTimer=setTimeout(step,850)};step()}
+function resetRound(){players=players.filter(p=>p.connected).map(p=>newPlayer(p.id,p.name,p.token));for(const w of waiting){if(players.length>=MAX)break;let id=0;const used=new Set(players.map(p=>p.id));while(used.has(id)&&id<MAX)id++;if(id>=MAX)break;const p=newPlayer(id,w.name,w.token);players.push(p);const c=[...clients.values()].find(x=>x.token===w.token);if(c){c.playerId=id;sendClient(c,{type:"assigned",seat:id,token:w.token,room:"GLOBAL10",capacity:MAX,players,snapshot:snapshot()})}}waiting=[];ready.clear();rematch.clear();finalResults=[];started=false;over=false;elapsed=0;phase="lobby";for(const c of clients.values())if(c.joined)sendClient(c,{type:"countdownEnd"});broadcast()}
+function join(c,m){const token=String(m.token||rand()).slice(0,100);let p=players.find(x=>x.token===token);c.token=token;c.name=String(m.name||"Тоглогч").trim().slice(0,24)||"Тоглогч";c.joined=true;if(!p&&started&&!over){if(players.filter(x=>x.connected).length+waiting.length>=MAX){c.joined=false;return send(c.ws,{type:"error",message:"Нийтлэг тоглолт 10 хүнээр дүүрсэн."})}waiting=waiting.filter(x=>x.token!==token);waiting.push({name:c.name,token});c.playerId=-1;send(c.ws,{type:"welcome",clientId:c.id,role:"waiting"});sendClient(c,{type:"waiting",waitingPlayers:waiting.map(x=>x.name)});return}if(!p){if(players.filter(x=>x.connected).length>=MAX){c.joined=false;return send(c.ws,{type:"error",message:"Нийтлэг тоглолт 10 хүнээр дүүрсэн."})}const used=new Set(players.filter(x=>x.connected).map(x=>x.id));let id=0;while(used.has(id)&&id<MAX)id++;if(id>=MAX){c.joined=false;return send(c.ws,{type:"error",message:"Тоглогчийн суудал дүүрсэн."})}p=newPlayer(id,c.name,token);players.push(p)}else{p.connected=true;p.name=c.name}c.playerId=p.id;send(c.ws,{type:"welcome",clientId:c.id,role:"client"});sendClient(c,{type:"assigned",seat:p.id,token,room:"GLOBAL10",capacity:MAX,players,snapshot:snapshot()});broadcast()}
+function disconnect(c){if(!c||!c.joined)return;const p=players.find(x=>x.id===c.playerId);if(p){p.connected=false;ready.delete(p.id);rematch.delete(p.id)}if(c.playerId===-1)waiting=waiting.filter(w=>w.token!==c.token);c.joined=false;checkWinner();broadcast()}
+function handle(c,m){if(m.type==="join"&&!c.joined)return join(c,m);if(!c.joined)return;if(m.type==="toHost")m=m.data||{};if(m.type==="action"){const p=players.find(x=>x.id===c.playerId);if(p&&m.seat===c.playerId)act(p,m.action);checkWinner();broadcast();return}if(m.type==="ready"){if(started||over||countdown||m.seat!==c.playerId)return;ready.add(c.playerId);broadcast();beginCountdown();return}if(m.type==="rematch"){if(!over||m.seat!==c.playerId)return;rematch.add(c.playerId);broadcast();const active=players.filter(p=>p.connected);if(active.length&&active.every(p=>rematch.has(p.id)))resetRound();return}if(m.type==="chat"){const item={name:c.name,text:String(m.text||"").trim().slice(0,180),at:now()};if(!item.text)return;for(const x of clients.values())if(x.joined)sendClient(x,{type:"chat",item});return}if(m.type==="ping")send(c.ws,{type:"pong",at:now()})}
+wss.on("connection",ws=>{const c={ws,id:crypto.randomUUID(),name:"Тоглогч",token:"",playerId:-1,joined:false};clients.set(ws,c);send(ws,{type:"connected",clientId:c.id,maxPlayers:MAX});ws.on("message",raw=>{let m;try{m=JSON.parse(raw.toString())}catch{return send(ws,{type:"error",message:"JSON алдаа"})}handle(c,m)});ws.on("close",()=>{disconnect(c);clients.delete(ws)});ws.on("error",()=>{disconnect(c);clients.delete(ws)})});
+const tickTimer=setInterval(()=>{if(!started||over)return;const t=now(),dt=Math.min(100,t-lastTick);lastTick=t;elapsed+=dt;for(const p of players){if(p.connected&&p.alive){p.drop+=dt;if(p.drop>=p.interval){p.drop=0;if(!collide(p,0,1))p.piece.y++;else lock(p)}}}checkWinner();broadcast()},125);
+const heartbeat=setInterval(()=>{for(const ws of wss.clients){if(ws.isAlive===false){ws.terminate();continue}ws.isAlive=false;ws.ping()}},25000);wss.on("connection",ws=>{ws.isAlive=true;ws.on("pong",()=>ws.isAlive=true)});
+server.listen(PORT,"0.0.0.0",()=>console.log("Online Tetris V17 authoritative server listening on "+PORT));
+process.on("SIGTERM",()=>{clearInterval(heartbeat);clearInterval(tickTimer);clearTimeout(countdownTimer);for(const ws of wss.clients)ws.close(1001,"Server shutting down");server.close(()=>process.exit(0))});
