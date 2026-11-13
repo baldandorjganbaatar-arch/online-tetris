@@ -61,6 +61,14 @@ wss.on("connection",ws=>{
    }
    return;
   }
+  if(m.type==="chat"){
+   const item={name:c.name||"Тоглогч",text:String(m.text||"").trim().slice(0,180),at:Date.now()};
+   if(!item.text)return;
+   for(const [clientWs,client] of clients){
+    if(client.joined)send(clientWs,{type:"chat",item});
+   }
+   return;
+  }
   if(m.type==="ping")send(ws,{type:"pong",at:Date.now()});
  });
  ws.on("close",()=>drop(ws));ws.on("error",()=>drop(ws));

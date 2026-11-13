@@ -243,6 +243,7 @@ function makeHostAdapter(peerId){
 }
 function wsSend(obj){if(wsSocket?.readyState===WebSocket.OPEN)wsSocket.send(JSON.stringify(obj))}
 function onServerMessage(m){
+ if(m.type==="chat"){appendChat(m.item);return}
  if(m.type==="welcome"){
   wsClientId=m.clientId;wsRole=m.role;
   if(m.role==="host"){
@@ -502,7 +503,7 @@ function clientMessage(m){if(m.type==="waiting"){ $("net").textContent="Дара
  if(over&&!wasOver){const winner=m.data.winnerName||players.find(p=>p.alive)?.name;soundEvent(winner&&winner!=="Тэнцлээ"?"win":"lose");toast(winner&&winner!=="Тэнцлээ"?"🏆 "+winner+" ЯЛАГЧ БОЛЛОО!":"🤝 ТОГЛООМ ДУУСЛАА!")}
 }}
 function appendChat(item){let box=$("chatLog");if(box.textContent==="Чат эхлээгүй байна.")box.textContent="";let line=document.createElement("div");line.textContent=(item.name||"Тоглогч")+": "+item.text;box.appendChild(line);box.scrollTop=box.scrollHeight}
-function sendChat(){let text=$("chatInput").value.trim();if(!text)return;if(host){let item={name,text,at:Date.now()};appendChat(item);connections.forEach(c=>send(c,{type:"chat",item}));spectators.forEach(c=>send(c,{type:"chat",item}))}else send(hostConn,{type:"chat",name,text});$("chatInput").value=""}
+function sendChat(){let text=$("chatInput").value.trim();if(!text)return;if(wsSocket?.readyState!==WebSocket.OPEN){toast("Сервертэй холболт байхгүй байна.");return}wsSend({type:"chat",text});$("chatInput").value=""}
 function resetRound(){
  players=players.filter(p=>p.connected).map(p=>newPlayer(p.id,p.name,p.token));
  for(const w of waitingPlayers){
