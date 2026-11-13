@@ -2,7 +2,7 @@
 <html lang="mn"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Online Tetris — Нийтлэг тоглолт</title><script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
 <style>
 *{box-sizing:border-box}body{margin:0;padding:12px;background:radial-gradient(ellipse at top,#263c68,#111a2e 60%,#080d18);color:#f3f6ff;font-family:system-ui,Arial,sans-serif;min-height:100vh}main{max-width:1450px;margin:auto}header{text-align:center}h1{margin:0;font-size:clamp(24px,4vw,36px)}header p,.muted{color:#b8c5dc}.panel{background:#151f38;border:1px solid #405577;border-radius:13px;padding:13px;margin:10px 0}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}input,select{background:#0c1629;color:white;border:1px solid #7188b2;border-radius:8px;padding:10px;min-width:120px}button{border:1px solid #7188b2;border-radius:8px;padding:10px 13px;background:#31517f;color:white;font-weight:850;cursor:pointer}button:disabled{opacity:.4;cursor:not-allowed}.primary{background:#176b61}.danger{background:#793d53}.rooms{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:9px}.room{background:#0c1629;border:1px solid #526586;border-radius:10px;padding:10px}.room b{display:block}.room small{color:#b8c5dc}.room button{margin-top:8px;width:100%}.players{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.player{background:#151f38;border:1px solid #405577;border-radius:12px;text-align:center;padding:8px;min-width:0}.player.me{border-color:#75e6a2}.player h3{margin:3px;font-size:15px}.player canvas{width:min(100%,200px);height:auto;aspect-ratio:1/2;background:#080e1a;border:2px solid #526586;border-radius:6px}.stats{display:flex;justify-content:center;gap:18px;color:#b8c5dc}.stats b{color:white}.bar{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}.status{color:#ffdf87;font-weight:900}.ready-prompt{padding:10px 14px;border:2px solid #39c9e8;border-radius:10px;background:#0c2638;color:#7feaff;font-weight:950;text-align:center;box-shadow:0 0 14px #39c9e833}#toast{text-align:center;min-height:24px;color:#ffdf87;font-weight:850}.hidden{display:none!important}.scoreboard{width:100%;border-collapse:collapse}.scoreboard td,.scoreboard th{padding:7px;border-bottom:1px solid #405577;text-align:left}.scoreboard th{color:#b8c5dc}.note{font-size:12px;color:#aebbd3;line-height:1.5}
 @media(max-width:540px){body{padding:6px}.players{grid-template-columns:repeat(2,minmax(0,1fr))}.player canvas{width:100%}}
@@ -193,7 +193,9 @@ const firebaseAuth=firebase.auth();
 const firebaseReady=firebaseAuth.signInAnonymously();
 const $=id=>document.getElementById(id), W=10,H=20,SHAPES=[
 {m:[[1,1,1,1]],c:"#36c9ed"},{m:[[1,1],[1,1]],c:"#f5d34f"},{m:[[0,1,0],[1,1,1]],c:"#a77bf5"},{m:[[1,0,0],[1,1,1]],c:"#4c83ed"},{m:[[0,0,1],[1,1,1]],c:"#ed9b45"},{m:[[0,1,1],[1,1,0]],c:"#58cf86"},{m:[[1,1,0],[0,1,1]],c:"#ef6680"}];
-const GLOBAL_ROOM="GLOBAL10", GLOBAL_HOST_ID="online-tetris-global-10";
+const GLOBAL_ROOM="GLOBAL10";
+const WS_URL="wss://glistening-imagination-production-018b15a6.up.railway.app/ws";
+let wsSocket=null, wsClientId="", wsRole="", wsAdapters=new Map();
 let lastGlobalSnapshot=null, globalRetryTimer=null;
 let audioOn=true,audioCtx=null,finalResults=[],peer=null,connections=new Map(),spectators=new Set(),waitingConnections=new Map(),waitingPlayers=[],host=false,room="",seat=-1,players=[],started=false,over=false,elapsed=0,last=0,gameTimer=null,dirTimer=null,capacity=10,hostPeerId=GLOBAL_HOST_ID,reconnectToken="",name=localStorage.getItem("ot_name")||"",hostConn=null,rematchVotes=new Set(),readyPlayers=new Set(),lastRoomPublish=0,lastRoomSignature="";
 $("name").value=name;$("welcome").textContent=name?"Сайн уу, "+name:"";
@@ -209,7 +211,16 @@ function randomShape(){return Math.floor(Math.random()*SHAPES.length)}
 function takeNext(p){if(!p.nextQueue||!p.nextQueue.length)p.nextQueue=Array.from({length:5},randomShape);let index=p.nextQueue.shift();p.nextQueue.push(randomShape());return makePiece(index)}
 function piece(){return makePiece(randomShape())}
 function newPlayer(id,n,tok){let p={id,name:n,token:tok,grid:Array.from({length:H},()=>Array(W).fill(null)),nextQueue:Array.from({length:5},randomShape),piece:null,held:null,holdUsed:false,score:0,lines:0,drop:0,interval:650,alive:true,connected:true};p.piece=takeNext(p);return p}
-function send(c,m){if(c&&c.open)c.send(m)}
+function send(c,m){
+ if(!c)return;
+ if(c.kind==="host-peer"&&wsSocket?.readyState===WebSocket.OPEN){
+  wsSocket.send(JSON.stringify({type:"toPeer",peerId:c.peerId,data:m}));return;
+ }
+ if(c.kind==="server-host"&&wsSocket?.readyState===WebSocket.OPEN){
+  wsSocket.send(JSON.stringify({type:"toHost",data:m}));return;
+ }
+ if(c.open&&typeof c.send==="function")c.send(m);
+}
 let lastStateBroadcast=0;
 function broadcast(force=false){
  const now=performance.now();
@@ -217,11 +228,75 @@ function broadcast(force=false){
  if(host&&(force||now-lastStateBroadcast>=125)){
   lastStateBroadcast=now;
   let packet={type:"state",data:snapshot()};
+  wsSend({type:"hostState",state:packet.data});
   connections.forEach(c=>send(c,packet));
   waitingConnections.forEach(c=>send(c,{type:"waiting",waitingPlayers:waitingPlayers.map(w=>w.name)}));
   spectators.forEach(c=>send(c,packet));
  }
  render();checkWinner();publishRoom()
+}
+function makeHostAdapter(peerId){
+ const c={kind:"host-peer",peerId,open:true,playerId:null,token:"",_close:[]};
+ c.on=(event,fn)=>{if(event==="close")c._close.push(fn)};
+ c.close=()=>{c.open=false;c._close.forEach(fn=>fn())};
+ wsAdapters.set(peerId,c);return c;
+}
+function wsSend(obj){if(wsSocket?.readyState===WebSocket.OPEN)wsSocket.send(JSON.stringify(obj))}
+function onServerMessage(m){
+ if(m.type==="welcome"){
+  wsClientId=m.clientId;wsRole=m.role;
+  if(m.role==="host"){
+   becomeWebSocketHost(m.state||null);
+  }else if(m.role==="client"){
+   hostConn={kind:"server-host",open:true,send:(data)=>send(hostConn,data)};
+   $("net").textContent="Холбогдож байна...";
+  }else if(m.role==="waiting"){
+   room=GLOBAL_ROOM;capacity=10;seat=-1;
+   $("net").textContent="Дараагийн тоглолтыг хүлээж байна";
+   $("directoryState").textContent="Дараагийн тоглолтод бүртгэгдлээ";
+   $("readyPrompt").textContent="⏳ Одоогийн тоглолт дуусахыг хүлээнэ үү. Дараагийн тоглолтод автоматаар орно.";
+   $("joinGlobal").disabled=true;$("leaveGlobal").disabled=false;
+  }
+  return;
+ }
+ if(m.type==="peer:join"&&host){
+  const c=makeHostAdapter(m.peerId);
+  hostMessage({type:"join",name:m.name,token:m.token},c);return;
+ }
+ if(m.type==="peer:data"){
+  if(host){
+   const c=wsAdapters.get(m.peerId);
+   if(c)hostMessage(m.data,c);
+  }else if(hostConn){
+   clientMessage(m.data);
+  }
+  return;
+ }
+ if(m.type==="peer:left"&&host){
+  const c=wsAdapters.get(m.peerId);
+  if(c){c.close();if(c.playerId!==null){const pl=players.find(p=>p.id===c.playerId);if(pl){pl.connected=false;readyPlayers.delete(pl.id);connections.delete(pl.id)}}wsAdapters.delete(m.peerId);broadcast(true)}
+  return;
+ }
+ if(m.type==="error"){toast(m.message||"Серверийн алдаа");return}
+ if(m.type==="server:closed"){toast("Сервертэй холболт тасарлаа.");return}
+}
+function becomeWebSocketHost(seed){
+ host=true;room=GLOBAL_ROOM;capacity=10;hostPeerId="railway-host";
+ const token=globalToken();
+ if(seed&&Array.isArray(seed.players)){
+  players=seed.players.map(p=>({...p,grid:p.grid.map(r=>r.slice()),piece:p.piece?{...p.piece,m:p.piece.m.map(r=>r.slice())}:null,connected:false}));
+  let mine=players.find(p=>p.token===token);
+  if(!mine){const used=new Set(players.map(p=>p.id));let id=0;while(used.has(id)&&id<10)id++;mine=newPlayer(id,name,token);players.push(mine)}
+  seat=mine.id;mine.connected=true;mine.name=name;
+  started=!!seed.started;over=!!seed.over;elapsed=seed.elapsed||0;finalResults=seed.finalResults||[];
+  readyPlayers=new Set(seed.ready||[]);rematchVotes=new Set(seed.rematchVotes||[]);
+ }else{
+  seat=0;players=[newPlayer(0,name,token)];started=false;over=false;elapsed=0;finalResults=[];readyPlayers.clear();rematchVotes.clear();
+ }
+ connections=new Map();spectators=new Set();waitingConnections=new Map();waitingPlayers=[];
+ $("net").textContent="Нийтлэг тоглолтын Host · Railway";
+ $("directoryState").textContent="Төв серверт холбогдсон · Host";
+ render();broadcast(true);toast("Төв серверт холбогдлоо. Та Host байна.");
 }
 function snapshot(){const joined=players.filter(p=>p.connected&&p.token);const alive=joined.filter(p=>p.alive);return {players,started,over,elapsed,capacity,ready:[...readyPlayers],rematchVotes:[...rematchVotes],waitingPlayers:waitingPlayers.map(w=>({name:w.name,token:w.token})),finalResults,winnerName:alive.length===1?alive[0].name:(alive.length===0?"Тэнцлээ":""),roomName:"Нийтлэг тоглолт"}}
 function updateMeta(){
@@ -467,80 +542,21 @@ function globalToken(){let t=localStorage.getItem("ot_token");if(!t){t=rand()+ra
 function joinGlobal(){
  if(!needName())return;
  if(room){toast("Та аль хэдийн нийтлэг тоглолтод нэгдсэн байна.");return}
- room=GLOBAL_ROOM;capacity=10;$("directoryState").textContent="Нийтлэг тоглолтод холбогдож байна...";
- const saved=lastGlobalSnapshot;
- tryBecomeGlobalHost(saved);
+ room=GLOBAL_ROOM;capacity=10;
+ $("directoryState").textContent="Railway төв серверт холбогдож байна...";
+ try{
+  wsSocket=new WebSocket(WS_URL);
+  wsSocket.onopen=()=>wsSend({type:"join",name,token:globalToken()});
+  wsSocket.onmessage=e=>{try{onServerMessage(JSON.parse(e.data))}catch(err){console.error("Bad server message",err)}};
+  wsSocket.onerror=()=>{ $("net").textContent="WebSocket алдаа";toast("Railway сервертэй холбогдож чадсангүй.")};
+  wsSocket.onclose=()=>{if(room===GLOBAL_ROOM){$("net").textContent="Холболт тасарсан";$("directoryState").textContent="Серверийн холболт тасарсан";}};
+ }catch(e){toast("WebSocket эхлүүлж чадсангүй: "+e.message)}
 }
-function tryBecomeGlobalHost(seed){
- if(peer){try{peer.destroy()}catch(e){}}
- host=false;hostConn=null;
- const candidate=new Peer(GLOBAL_HOST_ID);peer=candidate;
- candidate.on("open",()=>{
-  host=true;hostPeerId=GLOBAL_HOST_ID;room=GLOBAL_ROOM;capacity=10;
-  const token=globalToken();
-  if(seed&&Array.isArray(seed.players)){
-   players=seed.players.map(p=>({...p,grid:p.grid.map(r=>r.slice()),piece:p.piece?{...p.piece,m:p.piece.m.map(r=>r.slice())}:null,connected:false}));
-   let mine=players.find(p=>p.token===token);
-   if(!mine){
-    if(players.filter(p=>p.connected).length>=10){players=players.slice(0,9)}
-    const used=new Set(players.map(p=>p.id));let id=0;while(used.has(id)&&id<10)id++;
-    mine=newPlayer(id,name,token);players.push(mine);
-   }
-   seat=mine.id;mine.connected=true;mine.name=name;
-   players.forEach(p=>{if(p.id!==seat)p.connected=false});
-   started=!!seed.started;over=!!seed.over;elapsed=seed.elapsed||0;finalResults=seed.finalResults||[];
-   readyPlayers=new Set(seed.ready||[]);if(over)started=false;
-  }else{
-   seat=0;players=[newPlayer(0,name,token)];started=false;over=false;elapsed=0;finalResults=[];readyPlayers.clear();
-  }
-  connections=new Map();spectators=new Set();rematchVotes.clear();lastStateBroadcast=0;
-  $("net").textContent="Нийтлэг тоглолтын Host";
-  $("directoryState").textContent="Нийтлэг тоглолтод холбогдсон · Host";
-  candidate.on("connection",c=>{c.on("data",m=>hostMessage(m,c));c.on("close",()=>{let pl=players.find(p=>p.id===c.playerId);if(pl){pl.connected=false;readyPlayers.delete(pl.id);connections.delete(pl.id)}if(c.token){waitingConnections.delete(c.token);waitingPlayers=waitingPlayers.filter(w=>w.token!==c.token)}broadcast(true)})});
-  render();broadcast(true);toast("Нийтлэг тоглолтод нэгдлээ. Та одоогоор Host байна.");
- });
- candidate.on("error",e=>{
-  if(e.type==="unavailable-id"){
-   try{candidate.destroy()}catch(x){}
-   connectGlobalClient();
-  }else{
-   $("directoryState").textContent="Сервертэй холбогдож чадсангүй";
-   toast("PeerJS холболтын алдаа: "+e.type);
-   scheduleGlobalRetry(seed);
-  }
- });
-}
-function connectGlobalClient(){
- if(peer){try{peer.destroy()}catch(e){}}
- host=false;room=GLOBAL_ROOM;capacity=10;
- const client=new Peer();peer=client;
- client.on("open",()=>{
-  hostConn=client.connect(GLOBAL_HOST_ID,{reliable:true});
-  let opened=false;
-  const timeout=setTimeout(()=>{if(!opened){try{hostConn.close()}catch(e){}tryBecomeGlobalHost(lastGlobalSnapshot)}},6000);
-  hostConn.on("open",()=>{
-   opened=true;clearTimeout(timeout);
-   hostConn.send({type:"join",name,token:globalToken()});
-   $("net").textContent="Холбогдож байна...";
-  });
-  hostConn.on("data",m=>clientMessage(m));
-  hostConn.on("close",()=>{
-   clearTimeout(timeout);$("net").textContent="Холболт тасарсан";
-   $("directoryState").textContent="Host салсан — шинэ Host хайж байна...";
-   scheduleGlobalRetry(lastGlobalSnapshot);
-  });
-  hostConn.on("error",()=>{clearTimeout(timeout);scheduleGlobalRetry(lastGlobalSnapshot)});
- });
- client.on("error",()=>scheduleGlobalRetry(lastGlobalSnapshot));
-}
-function scheduleGlobalRetry(seed){
- clearTimeout(globalRetryTimer);
- globalRetryTimer=setTimeout(()=>{if(room===GLOBAL_ROOM&&!host)tryBecomeGlobalHost(seed)},1800);
-}
+function scheduleGlobalRetry(){toast("Сервертэй холболт тасарсан. Дахин JOIN хийнэ үү.")}
 $("joinGlobal").onclick=joinGlobal;
 $("leaveGlobal").onclick=()=>{
- if(peer){try{peer.destroy()}catch(e){}}
- clearTimeout(globalRetryTimer);host=false;room="";seat=-1;hostConn=null;players=[];waitingPlayers=[];waitingConnections.clear();started=false;over=false;
+ if(wsSocket){try{wsSocket.close()}catch(e){}}
+ clearTimeout(globalRetryTimer);host=false;room="";seat=-1;hostConn=null;players=[];waitingPlayers=[];waitingConnections.clear();wsAdapters.clear();started=false;over=false;
  $("net").textContent="Холбогдоогүй";$("directoryState").textContent="Тоглолтоос гарсан";render();
 };
 let starting=false;
