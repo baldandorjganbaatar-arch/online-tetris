@@ -122,7 +122,7 @@ button.danger{background:#7b3450!important}
 #countdownNumber{color:#67e8f9!important;text-shadow:0 0 35px #0891b2!important}
 .scoreboard th{color:#9cc5e9!important}
 .scoreboard td,.scoreboard th{border-color:#304866!important}
-</style></head><body><div id="countdownOverlay"><div id="countdownNumber">3</div><div id="countdownCaption">БЭЛДЭЭРЭЙ!</div></div><main>
+.sound-toggle{background:#123b52;border-color:#36c9ed;color:#8defff;padding:8px 11px}.final-results{border:2px solid #39c9e8;background:linear-gradient(145deg,#142b46,#111a2e);margin-top:14px}.final-results h2{margin:0 0 8px;color:#8defff}.final-results .champion{font-size:20px;font-weight:950;color:#ffe28a;margin:8px 0 14px}.final-results table{width:100%;border-collapse:collapse}.final-results th,.final-results td{padding:9px;border-bottom:1px solid #405577;text-align:left}.final-results th{color:#8defff}.final-results tr:first-child td{color:#ffe28a;font-weight:900}</style></head><body><div id="countdownOverlay"><div id="countdownNumber">3</div><div id="countdownCaption">БЭЛДЭЭРЭЙ!</div></div><main>
 <header><h1>🧱 ONLINE TETRIS</h1><p>2–6 хүн · Өрөөний жагсаалт · Тоглогчийн нэр · Дахин холбогдох</p></header>
 <section class="panel">
  <div class="row"><label>Тоглогчийн нэр <input id="name" maxlength="18" placeholder="Нэрээ бичнэ үү"></label><button id="saveName">Нэр хадгалах</button><span class="muted" id="welcome"></span></div>
@@ -146,9 +146,9 @@ button.danger{background:#7b3450!important}
 <div class="game-main">
 
 <section class="panel">
- <div class="bar"><div>Өрөө: <b id="roomLabel">—</b> · Суудал: <b id="seatLabel">—</b> · <span id="net" class="status">Холбогдоогүй</span></div><div>⏱ <b id="time">00:00</b> · 👥 <b id="count">0 / 6</b></div><div id="readyPrompt" class="ready-prompt">⏳ Өрөөнд орсон бүх тоглогч SPACE дарна уу (0/0)</div></div>
+ <div class="bar"><div>Өрөө: <b id="roomLabel">—</b> · Суудал: <b id="seatLabel">—</b> · <span id="net" class="status">Холбогдоогүй</span></div><div>⏱ <b id="time">00:00</b> · 👥 <b id="count">0 / 6</b></div><button id="soundToggle" type="button" class="sound-toggle">🔊 Дуу: АСААЛТТАЙ</button><div id="readyPrompt" class="ready-prompt">⏳ Өрөөнд орсон бүх тоглогч SPACE дарна уу (0/0)</div></div>
 </section>
-<div id="players" class="players"></div>
+<div id="players" class="players"></div><section id="finalResults" class="panel final-results hidden"></section>
 
 <section class="panel"><div class="row"><button id="spectate" disabled>👀 Үзэгчээр нэгдэх</button><button id="rematch" disabled>🔄 Дахин тоглох санал</button><span id="votes" class="muted"></span></div></section>
 <section class="panel"><h3>🏆 Онооны хүснэгт</h3><table class="scoreboard"><thead><tr><th>#</th><th>Тоглогч</th><th>Оноо</th><th>Арилгасан мөр</th><th>Төлөв</th></tr></thead><tbody id="ranking"><tr><td colspan="5" class="muted">Тоглоом эхлээгүй байна.</td></tr></tbody></table></section>
@@ -184,7 +184,7 @@ const firebaseAuth=firebase.auth();
 const firebaseReady=firebaseAuth.signInAnonymously();
 const $=id=>document.getElementById(id), W=10,H=20,SHAPES=[
 {m:[[1,1,1,1]],c:"#36c9ed"},{m:[[1,1],[1,1]],c:"#f5d34f"},{m:[[0,1,0],[1,1,1]],c:"#a77bf5"},{m:[[1,0,0],[1,1,1]],c:"#4c83ed"},{m:[[0,0,1],[1,1,1]],c:"#ed9b45"},{m:[[0,1,1],[1,1,0]],c:"#58cf86"},{m:[[1,1,0],[0,1,1]],c:"#ef6680"}];
-let peer=null,connections=new Map(),spectators=new Set(),host=false,room="",seat=-1,players=[],started=false,over=false,elapsed=0,last=0,gameTimer=null,dirTimer=null,capacity=6,hostPeerId="",reconnectToken="",name=localStorage.getItem("ot_name")||"",hostConn=null,rematchVotes=new Set(),readyPlayers=new Set(),lastRoomPublish=0,lastRoomSignature="";
+let audioOn=true,audioCtx=null,finalResults=[],peer=null,connections=new Map(),spectators=new Set(),host=false,room="",seat=-1,players=[],started=false,over=false,elapsed=0,last=0,gameTimer=null,dirTimer=null,capacity=6,hostPeerId="",reconnectToken="",name=localStorage.getItem("ot_name")||"",hostConn=null,rematchVotes=new Set(),readyPlayers=new Set(),lastRoomPublish=0,lastRoomSignature="";
 $("name").value=name;$("welcome").textContent=name?"Сайн уу, "+name:"";
 const toast=t=>$("toast").textContent=t,rand=()=>Math.random().toString(36).slice(2,8).toUpperCase();
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -200,8 +200,14 @@ function piece(){return makePiece(randomShape())}
 function newPlayer(id,n,tok){let p={id,name:n,token:tok,grid:Array.from({length:H},()=>Array(W).fill(null)),nextQueue:Array.from({length:5},randomShape),piece:null,held:null,holdUsed:false,score:0,lines:0,drop:0,interval:650,alive:true,connected:true};p.piece=takeNext(p);return p}
 function send(c,m){if(c&&c.open)c.send(m)}
 function broadcast(){if(host){let packet={type:"state",data:snapshot()};connections.forEach(c=>send(c,packet));spectators.forEach(c=>send(c,packet))}render();checkWinner();publishRoom()}
-function snapshot(){const joined=players.filter(p=>p.token);const alive=joined.filter(p=>p.alive);return {players,started,over,elapsed,capacity,ready:[...readyPlayers],winnerName:alive.length===1?alive[0].name:(alive.length===0?"Тэнцлээ":""),roomName:$("roomName").value||room}}
+function snapshot(){const joined=players.filter(p=>p.token);const alive=joined.filter(p=>p.alive);return {players,started,over,elapsed,capacity,ready:[...readyPlayers],finalResults,winnerName:alive.length===1?alive[0].name:(alive.length===0?"Тэнцлээ":""),roomName:$("roomName").value||room}}
 function updateMeta(){$("spectate").disabled=!room||host;$("roomLabel").textContent=room||"—";$("seatLabel").textContent=seat<0?"—":seat+1;$("count").textContent=players.filter(p=>p.connected).length+" / "+capacity;const readyCount=players.filter(p=>p.connected&&readyPlayers.has(p.id)).length;const needed=players.filter(p=>p.connected).length;$("readyPrompt").textContent=over?"🏁 SPACE дарж дахин эхлүүлэх санал өгнө үү":started?"🎮 ТОГЛООМ ЭХЭЛЛЭЭ!":"⏳ Өрөөнд орсон бүх тоглогч SPACE дарна уу ("+readyCount+"/"+needed+")";$("copy").disabled=!room;$("reconnect").disabled=!localStorage.getItem("ot_token")||host}
+function playTone(freq=520,duration=0.08,type="sine",volume=0.035){
+ if(!audioOn)return;
+ try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;audioCtx=audioCtx||new AC();if(audioCtx.state==="suspended")audioCtx.resume();const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();osc.type=type;osc.frequency.value=freq;gain.gain.setValueAtTime(volume,audioCtx.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+duration);osc.connect(gain);gain.connect(audioCtx.destination);osc.start();osc.stop(audioCtx.currentTime+duration)}catch(e){}
+}
+function soundEvent(kind){if(kind==="move")playTone(300,.025,"square",.012);if(kind==="rotate")playTone(430,.05,"sine",.02);if(kind==="drop")playTone(180,.09,"triangle",.04);if(kind==="line"){playTone(660,.12);setTimeout(()=>playTone(880,.16),90)}if(kind==="win"){[523,659,784,1046].forEach((f,i)=>setTimeout(()=>playTone(f,.2,"triangle",.045),i*130))}if(kind==="lose"){playTone(240,.18,"sawtooth",.03);setTimeout(()=>playTone(150,.25,"sawtooth",.025),150)}}
+$("soundToggle").onclick=()=>{audioOn=!audioOn;$("soundToggle").textContent=audioOn?"🔊 Дуу: АСААЛТТАЙ":"🔇 Дуу: УНТРААЛТТАЙ";if(audioOn)playTone(600,.07)};
 function miniPreview(shape){
  if(!shape)return '<span class="empty-preview">—</span>';
  let rows=shape.m.length,cols=shape.m[0].length;
@@ -228,6 +234,12 @@ function render(){
   box.innerHTML=`<div class="opponents-title"><h3>⚔ ӨРСӨЛДӨГЧИД</h3><span>${others.length} тоглогч</span></div><div class="opponents-grid">${others.map(p=>`<article class="player opponent ${p.alive?"":"out"}"><h3>${esc(p.name)} ${p.connected?"":"· салсан"}</h3><canvas width="200" height="400" id="cv${p.id}"></canvas><div class="stats"><span>Оноо <b>${p.score}</b></span><span>Мөр <b>${p.lines}</b></span></div></article>`).join("")}</div>`;
   $("players").appendChild(box);others.forEach(p=>draw(p,p.id));
  }
+ const resultsBox=$("finalResults");
+ if(over&&finalResults.length){
+  resultsBox.classList.remove("hidden");
+  const champ=finalResults[0];
+  resultsBox.innerHTML=`<h2>🏁 ТОГЛООМ ДУУСЛАА — ЭЦСИЙН БАЙР</h2><div class="champion">🏆 1-р байр: ${esc(champ.name)}</div><table><thead><tr><th>Байр</th><th>Тоглогч</th><th>Оноо</th><th>Мөр</th><th>Төлөв</th></tr></thead><tbody>${finalResults.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.name)}</td><td>${p.score}</td><td>${p.lines}</td><td>${i===0?"ЯЛАГЧ":"Тоглолт дууссан"}</td></tr>`).join("")}</tbody></table>`;
+ }else{resultsBox.classList.add("hidden");resultsBox.innerHTML=""}
  let sorted=[...players].sort((a,b)=>b.score-a.score);
  $("ranking").innerHTML=sorted.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.name)}</td><td>${p.score}</td><td>${p.lines}</td><td>${p.alive?(p.connected?"Тоглож байна":"Холболт тасарсан"):"Ялагдсан"}</td></tr>`).join("")||'<tr><td colspan="5">Тоглогч алга.</td></tr>';
 }
@@ -238,7 +250,12 @@ function draw(p,i){
  for(let y=0;y<=H;y++){c.beginPath();c.moveTo(0,y*20);c.lineTo(200,y*20);c.stroke()}
  const b=(x,y,col)=>{c.fillStyle=col;c.fillRect(x*20+1,y*20+1,18,18);c.strokeStyle="#ffffff70";c.strokeRect(x*20+1,y*20+1,18,18)};
  p.grid.forEach((r,y)=>r.forEach((v,x)=>{if(v)b(x,y,v)}));
- if(p.alive&&p.piece)p.piece.m.forEach((r,y)=>r.forEach((v,x)=>{if(v)b(p.piece.x+x,p.piece.y+y,p.piece.c)}));
+ if(p.alive&&p.piece){
+  const ghost={...p,piece:{...p.piece,y:p.piece.y}};
+  while(!collide(ghost,0,1))ghost.piece.y++;
+  p.piece.m.forEach((r,y)=>r.forEach((v,x)=>{if(v){c.fillStyle=p.piece.c+"35";c.fillRect((p.piece.x+x)*20+2,(ghost.piece.y+y)*20+2,16,16);c.strokeStyle=p.piece.c+"aa";c.strokeRect((p.piece.x+x)*20+2,(ghost.piece.y+y)*20+2,16,16)}}));
+  p.piece.m.forEach((r,y)=>r.forEach((v,x)=>{if(v)b(p.piece.x+x,p.piece.y+y,p.piece.c)}));
+ }
  if(!p.alive){c.fillStyle="#000b";c.fillRect(0,0,200,400);c.fillStyle="white";c.font="bold 22px sans-serif";c.textAlign="center";c.fillText("GAME OVER",100,205)}
  if(p.id===seat){
   if(over&&p.alive){
@@ -262,7 +279,7 @@ function collide(p,dx=0,dy=0,m=p.piece.m){for(let y=0;y<m.length;y++)for(let x=0
 function rotate(p){let m=p.piece.m,r=m[0].map((_,i)=>m.map(row=>row[i]).reverse());if(!collide(p,0,0,r))p.piece.m=r;else if(!collide(p,1,0,r)){p.piece.x++;p.piece.m=r}else if(!collide(p,-1,0,r)){p.piece.x--;p.piece.m=r}}
 function garbage(p,n){for(let k=0;k<n;k++){if(p.grid[0].some(Boolean)){p.alive=false;return}p.grid.shift();let hole=Math.floor(Math.random()*W);p.grid.push(Array.from({length:W},(_,x)=>x===hole?null:"#68758e"))}}
 function attack(p,n){players.filter(x=>x.alive&&x.id!==p.id).forEach(x=>garbage(x,Math.max(1,Math.floor(n/Math.max(1,players.length-1)))))}
-function lock(p){let q=p.piece;q.m.forEach((r,y)=>r.forEach((v,x)=>{if(v){let yy=q.y+y,xx=q.x+x;if(yy<0)p.alive=false;else p.grid[yy][xx]=q.c}}));let n=0;for(let y=H-1;y>=0;y--)if(p.grid[y].every(Boolean)){p.grid.splice(y,1);p.grid.unshift(Array(W).fill(null));n++;y++}if(n){p.lines+=n;p.score+=([0,100,300,500,800][n]||800);p.interval=Math.max(110,650-Math.floor(p.lines/5)*45);attack(p,n)}p.piece=takeNext(p);p.holdUsed=false;if(collide(p))p.alive=false;if(host)checkWinner()}
+function lock(p){let q=p.piece;q.m.forEach((r,y)=>r.forEach((v,x)=>{if(v){let yy=q.y+y,xx=q.x+x;if(yy<0)p.alive=false;else p.grid[yy][xx]=q.c}}));let n=0;for(let y=H-1;y>=0;y--)if(p.grid[y].every(Boolean)){p.grid.splice(y,1);p.grid.unshift(Array(W).fill(null));n++;y++}if(n){soundEvent("line");p.lines+=n;p.score+=([0,100,300,500,800][n]||800);p.interval=Math.max(110,650-Math.floor(p.lines/5)*45);attack(p,n)}p.piece=takeNext(p);p.holdUsed=false;if(collide(p))p.alive=false;if(host)checkWinner()}
 function action(id,a){let p=players.find(x=>x.id===id);if(!p||!p.alive||!started||over)return;if(a==="left"&&!collide(p,-1))p.piece.x--;if(a==="right"&&!collide(p,1))p.piece.x++;if(a==="rotate")rotate(p);if(a==="down"){if(!collide(p,0,1)){p.piece.y++;p.score++}else lock(p)}if(a==="drop"){while(!collide(p,0,1)){p.piece.y++;p.score+=2}lock(p)}if(a==="hold"&&!p.holdUsed){let cur={m:p.piece.m.map(r=>r.slice()),c:p.piece.c};if(p.held){let old=p.held;p.held={shapeIndex:cur.shapeIndex,m:cur.m.map(r=>r.slice()),c:cur.c};p.piece={...old,m:old.m.map(r=>r.slice()),x:3,y:0}}else{p.held={shapeIndex:cur.shapeIndex,m:cur.m.map(r=>r.slice()),c:cur.c};p.piece=takeNext(p)}p.holdUsed=true;if(collide(p))p.alive=false}}
 function checkWinner(){
  if(!host||!started||over)return;
@@ -271,9 +288,10 @@ function checkWinner(){
  // Room capacity (2-6) is only a limit; a round may start with just 2 joined players.
  if(joined.length>=2&&alive.length<=1){
   over=true;started=false;
+  finalResults=[...joined].sort((a,b)=>Number(b.alive)-Number(a.alive)||b.score-a.score||b.lines-a.lines).map(p=>({id:p.id,name:p.name,score:p.score,lines:p.lines,alive:p.alive}));
   const winnerName=alive.length===1?alive[0].name:"Тэнцлээ";
   const message=alive.length===1?`🏆 ${winnerName} ЯЛАГЧ БОЛЛОО!`:"🤝 ТЭНЦЛЭЭ — Бүгд game over.";
-  toast(message);
+  toast(message);soundEvent(alive.length===1?"win":"lose");
   $("rematch").disabled=false;
   render();
   broadcastEnd();
@@ -298,7 +316,7 @@ async function publishRoom(force=false){
  lastRoomSignature=signature;lastRoomPublish=now;
  try{await db("rooms/"+room,"PUT",{name:$("roomName").value||"Tetris өрөө",peerId:hostPeerId,count:participantCount,spectators:spectators.size,capacity,status,updatedAt:now})}catch(e){console.warn("Room directory update failed",e)}
 }
-function setupHost(){host=true;seat=0;capacity=Number($("capacity").value);room=rand();hostPeerId="tetris-"+room.toLowerCase();reconnectToken=rand()+rand();localStorage.setItem("ot_token",reconnectToken);localStorage.setItem("ot_room",room);players=[newPlayer(0,name,reconnectToken)];readyPlayers.clear();connections=new Map();peer=new Peer(hostPeerId);peer.on("open",()=>{$("net").textContent="Өрөө нээлттэй";toast("Өрөө үүслээ. Код: "+room);updateMeta();publishRoom();listRooms()});peer.on("connection",c=>{c.on("data",m=>hostMessage(m,c));c.on("close",()=>{let pl=players.find(p=>p.token===c.token);if(pl){pl.connected=false;readyPlayers.delete(pl.id);connections.delete(pl.id);broadcast()}})});peer.on("error",e=>toast("Peer холболтын алдаа: "+e.type));render()}
+function setupHost(){host=true;seat=0;capacity=Number($("capacity").value);room=rand();hostPeerId="tetris-"+room.toLowerCase();reconnectToken=rand()+rand();localStorage.setItem("ot_token",reconnectToken);localStorage.setItem("ot_room",room);players=[newPlayer(0,name,reconnectToken)];finalResults=[];readyPlayers.clear();connections=new Map();peer=new Peer(hostPeerId);peer.on("open",()=>{$("net").textContent="Өрөө нээлттэй";toast("Өрөө үүслээ. Код: "+room);updateMeta();publishRoom();listRooms()});peer.on("connection",c=>{c.on("data",m=>hostMessage(m,c));c.on("close",()=>{let pl=players.find(p=>p.token===c.token);if(pl){pl.connected=false;readyPlayers.delete(pl.id);connections.delete(pl.id);broadcast()}})});peer.on("error",e=>toast("Peer холболтын алдаа: "+e.type));render()}
 function hostMessage(m,c){if(m.type==="spectate"){spectators.add(c);c.on("close",()=>{spectators.delete(c);publishRoom();$("spectatorLabel").textContent="Үзэгч: "+spectators.size});send(c,{type:"spectating",room,players,snapshot:snapshot()});send(c,{type:"state",data:snapshot()});$("spectatorLabel").textContent="Үзэгч: "+spectators.size;publishRoom();return}
 if(m.type==="chat"){let item={name:m.name||"Тоглогч",text:String(m.text||"").slice(0,180),at:Date.now()};connections.forEach(x=>send(x,{type:"chat",item}));spectators.forEach(x=>send(x,{type:"chat",item}));appendChat(item);return}
 if(m.type==="ready"){if(started||over||c.playerId!==m.seat)return;readyPlayers.add(m.seat);broadcast();const connected=players.filter(p=>p.connected);if(connected.length>=2&&connected.every(p=>readyPlayers.has(p.id)))beginCountdown();return}
@@ -308,19 +326,20 @@ function joinRoom(code,spectator=false){if(!needName())return;let info=window.__
 function connectTo(info,code,spectator=false){if(!info||!info.peerId){toast("Өрөө олдсонгүй эсвэл хаагдсан байна.");return}if(peer)peer.destroy();host=false;room=code;let token=localStorage.getItem("ot_token")||"";let isReconnect=localStorage.getItem("ot_room")===code&&!!token;peer=new Peer();peer.on("open",()=>{hostConn=peer.connect(info.peerId,{reliable:true});hostConn.on("open",()=>{hostConn.send(spectator?{type:"spectate"}:{type:isReconnect?"reconnect":"join",name,token});$("net").textContent="Холбогдож байна..." });hostConn.on("data",m=>clientMessage(m));hostConn.on("close",()=>{$("net").textContent="Холболт тасарсан";$("reconnect").disabled=false;toast("Холболт тасарлаа. Дахин холбогдох товчийг дарна уу.")})});peer.on("error",e=>toast("Холболтын алдаа: "+e.type))}
 function clientMessage(m){if(m.type==="countdown"){showCountdown(m.value,m.label);return}if(m.type==="countdownEnd"){hideCountdown();return}if(m.type==="chat"){appendChat(m.item);return}if(m.type==="votes"){$("votes").textContent="Дахин тоглох санал: "+m.votes.length+"/"+m.total;return}if(m.type==="spectating"){seat=-1;players=m.players;hostConn.spectator=true;$("net").textContent="Үзэгчээр холбогдсон";$("spectate").disabled=true;$("rematch").disabled=true;render();return}if(m.type==="reject"){toast(m.reason);return}if(m.type==="assigned"){seat=m.seat;reconnectToken=m.token;localStorage.setItem("ot_token",m.token);localStorage.setItem("ot_room",room);players=m.players;capacity=m.capacity;readyPlayers=new Set(m.snapshot?.ready||[]);$("roomCode").value=room;$("net").textContent="Холбогдсон";toast("Өрөөнд амжилттай нэгдлээ.");render();return}if(m.type==="state"){
  const wasOver=over;
- players=m.data.players;started=m.data.started;over=m.data.over;elapsed=m.data.elapsed;capacity=m.data.capacity;readyPlayers=new Set(m.data.ready||[]);
+ players=m.data.players;started=m.data.started;over=m.data.over;elapsed=m.data.elapsed;capacity=m.data.capacity;readyPlayers=new Set(m.data.ready||[]);finalResults=m.data.finalResults||[];
  $("time").textContent=fmt(elapsed);$("net").textContent=hostConn?.spectator?"Үзэж байна":"Холбогдсон";
  $("rematch").disabled=!over||seat<0;$("spectate").disabled=true;render();
- if(over&&!wasOver){const winner=m.data.winnerName||players.find(p=>p.alive)?.name;toast(winner&&winner!=="Тэнцлээ"?"🏆 "+winner+" ЯЛАГЧ БОЛЛОО!":"🤝 ТОГЛООМ ДУУСЛАА!")}
+ if(over&&!wasOver){soundEvent(m.data.winnerName&&m.data.winnerName!=="Тэнцлээ"?"win":"lose");const winner=m.data.winnerName||players.find(p=>p.alive)?.name;toast(winner&&winner!=="Тэнцлээ"?"🏆 "+winner+" ЯЛАГЧ БОЛЛОО!":"🤝 ТОГЛООМ ДУУСЛАА!")}
 }}
 function appendChat(item){let box=$("chatLog");if(box.textContent==="Чат эхлээгүй байна.")box.textContent="";let line=document.createElement("div");line.textContent=(item.name||"Тоглогч")+": "+item.text;box.appendChild(line);box.scrollTop=box.scrollHeight}
 function sendChat(){let text=$("chatInput").value.trim();if(!text)return;if(host){let item={name,text,at:Date.now()};appendChat(item);connections.forEach(c=>send(c,{type:"chat",item}));spectators.forEach(c=>send(c,{type:"chat",item}))}else send(hostConn,{type:"chat",name,text});$("chatInput").value=""}
-function resetRound(){players=players.map(p=>newPlayer(p.id,p.name,p.token));started=false;over=false;elapsed=0;readyPlayers.clear();rematchVotes.clear();$("votes").textContent="";$("time").textContent="00:00";toast("Бүгд дахин эхлүүлэх санал өглөө. Шинэ раунд эхэлж байна!");broadcast();beginCountdown()}
+function resetRound(){players=players.map(p=>newPlayer(p.id,p.name,p.token));finalResults=[];started=false;over=false;elapsed=0;readyPlayers.clear();rematchVotes.clear();$("votes").textContent="";$("time").textContent="00:00";toast("Бүгд дахин эхлүүлэх санал өглөө. Шинэ раунд эхэлж байна!");broadcast();beginCountdown()}
 $("sendChat").onclick=sendChat;$("chatInput").addEventListener("keydown",e=>{if(e.key==="Enter")sendChat()});
 $("spectate").onclick=()=>{let c=room||$("roomCode").value.trim().toUpperCase();if(!c)return toast("Өрөөний код оруулна уу.");if(!DB)return toast("Үзэгчээр орохын тулд Firebase тохируулна уу.");db("rooms/"+c).then(r=>connectTo(r,c,true)).catch(()=>toast("Өрөө олдсонгүй."))};
 $("rematch").onclick=()=>{if(seat<0)return;if(host){rematchVotes.add(seat);$("votes").textContent="Дахин тоглох санал: "+rematchVotes.size+"/"+players.filter(p=>p.connected).length;if(rematchVotes.size>=players.filter(p=>p.connected).length)resetRound()}else send(hostConn,{type:"rematch",seat})};
 function performAction(a){
  if(seat<0||!started)return;
+ if(a==="left"||a==="right"||a==="down")soundEvent("move");if(a==="rotate")soundEvent("rotate");if(a==="drop")soundEvent("drop");
  if(host){action(seat,a);broadcast()}
  else send(hostConn,{type:"action",seat,action:a});
 }
