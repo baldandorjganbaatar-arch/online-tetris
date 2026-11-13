@@ -438,7 +438,7 @@ document.addEventListener("keydown",e=>{
 });
 window.addEventListener("pagehide",()=>{
  if(host&&DB&&room){
-  const url=FIREBASE_CONFIG.databaseURL.replace(/\\/$/,"")+"/rooms/"+encodeURIComponent(room)+".json";
+  const url=FIREBASE_CONFIG.databaseURL.replace(/\/$/,"")+"/rooms/"+encodeURIComponent(room)+".json";
   try{fetch(url,{method:"DELETE",keepalive:true,mode:"cors"}).catch(()=>{})}catch(e){}
  }
 });
