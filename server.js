@@ -51,7 +51,14 @@ wss.on("connection",ws=>{
   if(m.type==="toHost"&&ws!==host){send(host,{type:"peer:data",peerId:c.id,data:m.data});return}
   if(m.type==="toPeer"&&ws===host){const target=[...clients.entries()].find(([,x])=>x.id===m.peerId);if(target)send(target[0],{type:"peer:data",peerId:hostId,data:m.data});return}
   if(m.type==="hostState"&&ws===host){
-   lastState=m.state||null;phase=lastState?.started?"playing":lastState?.over?"finished":"lobby";
+   lastState=m.state||null;
+   phase=lastState?.started?"playing":lastState?.over?"finished":"lobby";
+   // Relay the authoritative host snapshot to every connected player.
+   for(const [clientWs,client] of clients){
+    if(clientWs!==host && client.joined && !client.waiting){
+     send(clientWs,{type:"peer:data",peerId:hostId,data:{type:"state",data:lastState}});
+    }
+   }
    return;
   }
   if(m.type==="ping")send(ws,{type:"pong",at:Date.now()});
