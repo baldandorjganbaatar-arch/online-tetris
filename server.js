@@ -11,7 +11,8 @@ const clients = new Map(); // ws -> { id, name, roomId, alive }
 const rooms = new Map();
 
 const server = http.createServer((req, res) => {
-  if (req.url === "/health") {
+  const requestPath = new URL(req.url, "http://localhost").pathname;
+  if (requestPath === "/health") {
     res.writeHead(200, { "content-type": "application/json" });
     return res.end(JSON.stringify({ ok: true, service: "online-tetris", players: [...rooms.values()].reduce((n, r) => n + r.players.size, 0) }));
   }
