@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="mn"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Online Tetris 2–6</title><script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;padding:12px;background:radial-gradient(ellipse at top,#263c68,#111a2e 60%,#080d18);color:#f3f6ff;font-family:system-ui,Arial,sans-serif;min-height:100vh}main{max-width:1450px;margin:auto}header{text-align:center}h1{margin:0;font-size:clamp(24px,4vw,36px)}header p,.muted{color:#b8c5dc}.panel{background:#151f38;border:1px solid #405577;border-radius:13px;padding:13px;margin:10px 0}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}input,select{background:#0c1629;color:white;border:1px solid #7188b2;border-radius:8px;padding:10px;min-width:120px}button{border:1px solid #7188b2;border-radius:8px;padding:10px 13px;background:#31517f;color:white;font-weight:850;cursor:pointer}button:disabled{opacity:.4;cursor:not-allowed}.primary{background:#176b61}.danger{background:#793d53}.rooms{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:9px}.room{background:#0c1629;border:1px solid #526586;border-radius:10px;padding:10px}.room b{display:block}.room small{color:#b8c5dc}.room button{margin-top:8px;width:100%}.players{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.player{background:#151f38;border:1px solid #405577;border-radius:12px;text-align:center;padding:8px;min-width:0}.player.me{border-color:#75e6a2}.player h3{margin:3px;font-size:15px}.player canvas{width:min(100%,200px);height:auto;aspect-ratio:1/2;background:#080e1a;border:2px solid #526586;border-radius:6px}.stats{display:flex;justify-content:center;gap:18px;color:#b8c5dc}.stats b{color:white}.bar{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}.status{color:#ffdf87;font-weight:900}#toast{text-align:center;min-height:24px;color:#ffdf87;font-weight:850}.hidden{display:none!important}.scoreboard{width:100%;border-collapse:collapse}.scoreboard td,.scoreboard th{padding:7px;border-bottom:1px solid #405577;text-align:left}.scoreboard th{color:#b8c5dc}.note{font-size:12px;color:#aebbd3;line-height:1.5}
+@media(max-width:540px){body{padding:6px}.players{grid-template-columns:repeat(2,minmax(0,1fr))}.player canvas{width:100%}}
+</style></head><body><main>
+<header><h1>🧱 ONLINE TETRIS</h1><p>2–6 хүн · Өрөөний жагсаалт · Тоглогчийн нэр · Дахин холбогдох</p></header>
+<section class="panel">
+ <div class="row"><label>Тоглогчийн нэр <input id="name" maxlength="18" placeholder="Нэрээ бичнэ үү"></label><button id="saveName">Нэр хадгалах</button><span class="muted" id="welcome"></span></div>
+</section>
+<section class="panel">
+ <h3>🌐 Өрөөнүүд</h3><div class="row"><button id="refresh">↻ Жагсаалт шинэчлэх</button><span class="muted" id="directoryState">Өгөгдлийн сан тохируулаагүй</span></div><div id="rooms" class="rooms"><p class="muted">Өрөөний жагсаалтыг харахын тулд Firebase тохиргоо шаардлагатай.</p></div>
+</section>
+<section class="panel">
+ <h3>🏠 Өрөө үүсгэх / нэгдэх</h3><div class="row"><label>Өрөөний нэр <input id="roomName" maxlength="24" placeholder="Жишээ: Найзууд"></label><label>Хүний тоо <select id="capacity"><option>2</option><option>3</option><option>4</option><option>5</option><option selected>6</option></select></label><button id="create" class="primary">Өрөө үүсгэх</button></div>
+ <div class="row" style="margin-top:9px"><label>Өрөөний код <input id="roomCode" maxlength="8" placeholder="КОД"></label><button id="join">Кодоор нэгдэх</button><button id="copy" disabled>Код хуулах</button><button id="reconnect" disabled>↪ Дахин холбогдох</button></div>
+</section>
+<section class="panel">
+ <div class="bar"><div>Өрөө: <b id="roomLabel">—</b> · Суудал: <b id="seatLabel">—</b> · <span id="net" class="status">Холбогдоогүй</span></div><div>⏱ <b id="time">00:00</b> · 👥 <b id="count">0 / 6</b></div><button id="start" disabled>▶ Тоглоом эхлүүлэх</button></div>
+</section>
+<div id="players" class="players"></div>
+<section class="panel">
+ <div class="bar"><h3>💬 Өрөөний чат</h3><span class="muted" id="spectatorLabel">Үзэгч: 0</span></div>
+ <div id="chatLog" style="height:130px;overflow:auto;background:#0c1629;border-radius:8px;padding:8px;margin:8px 0;font-size:13px">Чат эхлээгүй байна.</div>
+ <div class="row"><input id="chatInput" maxlength="180" placeholder="Мессеж бичих..." style="flex:1"><button id="sendChat">Илгээх</button></div>
+</section>
+<section class="panel"><div class="row"><button id="spectate" disabled>👀 Үзэгчээр нэгдэх</button><button id="rematch" disabled>🔄 Дахин тоглох санал</button><span id="votes" class="muted"></span></div></section>
+<section class="panel" id="mobilePad">
+ <h3>📱 Утасны удирдлага</h3>
+ <div class="row" style="justify-content:center">
+ <button data-act="left">⬅</button><button data-act="rotate">⤾ Эргүүлэх</button><button data-act="right">➡</button>
+ </div><div class="row" style="justify-content:center;margin-top:7px">
+ <button data-act="hold">Хадгалах</button><button data-act="down">⬇ Доош</button><button data-act="drop" class="primary">⤓ Унагах</button>
+ </div>
+</section>
+<section class="panel"><h3>🏆 Онооны хүснэгт</h3><table class="scoreboard"><thead><tr><th>#</th><th>Тоглогч</th><th>Оноо</th><th>Арилгасан мөр</th><th>Төлөв</th></tr></thead><tbody id="ranking"><tr><td colspan="5" class="muted">Тоглоом эхлээгүй байна.</td></tr></tbody></table></section>
+<div id="toast">Нэрээ оруулаад өрөө үүсгэх эсвэл жагсаалтаас сонгоно уу.</div>
+<p class="note">Удирдлага: A / D эсвэл ← / → — хөдлөх · W / ↑ — эргүүлэх · S / ↓ — доош · Space / Enter — шууд унагах · C / Shift — хадгалах.<br>Өрсөлдөгч мөр арилгахад бусад тоглогчдод саадтай мөр нэмэгдэнэ. Сүүлд үлдсэн тоглогч ялна.</p>
+</main>
+<script>
+/* FIREBASE CONFIG: paste your Firebase Web App config here.
+   Realtime Database rules must allow read/write for this demo.
+   Do not use public write rules for a production game. */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBbgqUgCCVyCoD12KwkeWE8GaEPI4mqS0g",
+  authDomain: "onlinetetris-35d3a.firebaseapp.com",
+  databaseURL: "https://onlinetetris-35d3a-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "onlinetetris-35d3a",
+  storageBucket: "onlinetetris-35d3a.firebasestorage.app",
+  messagingSenderId: "411102447323",
+  appId: "1:411102447323:web:2d6e0f4c66de3ba56d6efe",
+  measurementId: "G-7S374DPP21"
+};
+const DB=FIREBASE_CONFIG.databaseURL.replace(/\/$/,"");
+firebase.initializeApp(FIREBASE_CONFIG);
+const firebaseAuth=firebase.auth();
+const firebaseReady=firebaseAuth.signInAnonymously();
+const $=id=>document.getElementById(id), W=10,H=20,SHAPES=[
+{m:[[1,1,1,1]],c:"#36c9ed"},{m:[[1,1],[1,1]],c:"#f5d34f"},{m:[[0,1,0],[1,1,1]],c:"#a77bf5"},{m:[[1,0,0],[1,1,1]],c:"#4c83ed"},{m:[[0,0,1],[1,1,1]],c:"#ed9b45"},{m:[[0,1,1],[1,1,0]],c:"#58cf86"},{m:[[1,1,0],[0,1,1]],c:"#ef6680"}];
+let peer=null,connections=new Map(),spectators=new Set(),host=false,room="",seat=-1,players=[],started=false,over=false,elapsed=0,last=0,gameTimer=null,dirTimer=null,capacity=6,hostPeerId="",reconnectToken="",name=localStorage.getItem("ot_name")||"",hostConn=null,rematchVotes=new Set(),lastRoomPublish=0,lastRoomSignature="";
+$("name").value=name;$("welcome").textContent=name?"Сайн уу, "+name:"";
+const toast=t=>$("toast").textContent=t,rand=()=>Math.random().toString(36).slice(2,8).toUpperCase();
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function needName(){name=$("name").value.trim();if(!name){toast("Эхлээд тоглогчийн нэрээ оруулна уу.");$("name").focus();return false}localStorage.setItem("ot_name",name);$("welcome").textContent="Сайн уу, "+name;return true}
+$("saveName").onclick=()=>{if(needName())toast("Нэр хадгалагдлаа.")};
+async function db(path,method="GET",data){if(!DB)throw Error("Firebase тохиргоо дутуу");await firebaseReady;const user=firebaseAuth.currentUser;if(!user)throw Error("Firebase нэвтрэлт амжилтгүй");const token=await user.getIdToken();let r=await fetch(DB+"/"+path+".json?auth="+encodeURIComponent(token),{method,headers:{"Content-Type":"application/json"},body:data===undefined?undefined:JSON.stringify(data),cache:"no-store"});if(!r.ok)throw Error("Өгөгдлийн сангийн алдаа "+r.status);return r.status===204?null:r.json()}
+async function listRooms(){if(!DB){$("directoryState").textContent="Firebase тохиргоо дутуу";$("rooms").innerHTML='<p class="muted">Өрөөний жагсаалт ажиллуулахын тулд HTML доторх FIREBASE_CONFIG.databaseURL хэсэгт Firebase Realtime Database URL оруулна.</p>';return}
+try{let all=await db("rooms");let now=Date.now(),arr=Object.entries(all||{}).map(([code,r])=>({...r,code})).filter(r=>now-(r.updatedAt||0)<45000&&r.status!=="finished");$("directoryState").textContent="Онлайн өрөө: "+arr.length;$("rooms").innerHTML=arr.length?arr.map(r=>`<div class="room"><b>${esc(r.name||"Нэргүй өрөө")}</b><small>Код: ${esc(r.code)} · ${r.count||0}/${r.capacity||6} хүн · ${r.status==="playing"?"Тоглож байна":"Хүлээж байна"}</small><button data-join="${esc(r.code)}" ${r.status==="playing"||r.count>=r.capacity?"disabled":""}>Нэгдэх</button><button data-watch="${esc(r.code)}">Үзэх</button></div>`).join(""):'<p class="muted">Одоогоор нээлттэй өрөө алга.</p>';$("rooms").querySelectorAll("[data-join]").forEach(b=>b.onclick=()=>joinRoom(b.dataset.join));$("rooms").querySelectorAll("[data-watch]").forEach(b=>b.onclick=()=>joinRoom(b.dataset.watch,true))}catch(e){$("directoryState").textContent="Холболтын алдаа";toast("Өрөөний жагсаалт уншиж чадсангүй: "+e.message)}}
+function piece(){let s=SHAPES[Math.floor(Math.random()*SHAPES.length)];return {m:s.m.map(r=>r.slice()),c:s.c,x:3,y:0}}
+function newPlayer(id,n,tok){return {id,name:n,token:tok,grid:Array.from({length:H},()=>Array(W).fill(null)),piece:piece(),held:null,holdUsed:false,score:0,lines:0,drop:0,interval:650,alive:true,connected:true}}
+function send(c,m){if(c&&c.open)c.send(m)}
+function broadcast(){if(host){let packet={type:"state",data:snapshot()};connections.forEach(c=>send(c,packet));spectators.forEach(c=>send(c,packet))}render();checkWinner();publishRoom()}
+function snapshot(){return {players,started,over,elapsed,capacity,roomName:$("roomName").value||room}}
+function updateMeta(){$("spectate").disabled=!room||host;$("roomLabel").textContent=room||"—";$("seatLabel").textContent=seat<0?"—":seat+1;$("count").textContent=players.length+" / "+capacity;$("start").disabled=!(host&&players.length>=2&&!started);$("copy").disabled=!room;$("reconnect").disabled=!localStorage.getItem("ot_token")||host}
+function render(){updateMeta();$("players").innerHTML="";players.forEach((p,i)=>{let el=document.createElement("section");el.className="player"+(i===seat?" me":"");el.innerHTML=`<h3>${i===seat?"🟢 ":""}${esc(p.name)} ${p.connected?"":"(тасарсан)"} ${p.alive?"":"— OUT"}</h3><canvas width="200" height="400" id="cv${i}"></canvas><div class="stats"><span>Оноо <b>${p.score}</b></span><span>Мөр <b>${p.lines}</b></span></div>`;$("players").appendChild(el);draw(p,i)});let sorted=[...players].sort((a,b)=>b.score-a.score);$("ranking").innerHTML=sorted.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.name)}</td><td>${p.score}</td><td>${p.lines}</td><td>${p.alive?(p.connected?"Тоглож байна":"Холболт тасарсан"):"Ялагдсан"}</td></tr>`).join("")||'<tr><td colspan="5">Тоглогч алга.</td></tr>'}
+function draw(p,i){let cv=$("cv"+i),c=cv?.getContext("2d");if(!c)return;c.clearRect(0,0,200,400);c.fillStyle="#080e1a";c.fillRect(0,0,200,400);c.strokeStyle="#17243a";for(let x=0;x<=W;x++){c.beginPath();c.moveTo(x*20,0);c.lineTo(x*20,400);c.stroke()}for(let y=0;y<=H;y++){c.beginPath();c.moveTo(0,y*20);c.lineTo(200,y*20);c.stroke()}const b=(x,y,col)=>{c.fillStyle=col;c.fillRect(x*20+1,y*20+1,18,18);c.strokeStyle="#ffffff70";c.strokeRect(x*20+1,y*20+1,18,18)};p.grid.forEach((r,y)=>r.forEach((v,x)=>{if(v)b(x,y,v)}));if(p.alive&&p.piece)p.piece.m.forEach((r,y)=>r.forEach((v,x)=>{if(v)b(p.piece.x+x,p.piece.y+y,p.piece.c)}));if(!p.alive){c.fillStyle="#0009";c.fillRect(0,0,200,400);c.fillStyle="white";c.font="bold 22px sans-serif";c.textAlign="center";c.fillText("GAME OVER",100,205)}}
+function collide(p,dx=0,dy=0,m=p.piece.m){for(let y=0;y<m.length;y++)for(let x=0;x<m[y].length;x++)if(m[y][x]){let xx=p.piece.x+x+dx,yy=p.piece.y+y+dy;if(xx<0||xx>=W||yy>=H||(yy>=0&&p.grid[yy][xx]))return true}return false}
+function rotate(p){let m=p.piece.m,r=m[0].map((_,i)=>m.map(row=>row[i]).reverse());if(!collide(p,0,0,r))p.piece.m=r;else if(!collide(p,1,0,r)){p.piece.x++;p.piece.m=r}else if(!collide(p,-1,0,r)){p.piece.x--;p.piece.m=r}}
+function garbage(p,n){for(let k=0;k<n;k++){if(p.grid[0].some(Boolean)){p.alive=false;return}p.grid.shift();let hole=Math.floor(Math.random()*W);p.grid.push(Array.from({length:W},(_,x)=>x===hole?null:"#68758e"))}}
+function attack(p,n){players.filter(x=>x.alive&&x.id!==p.id).forEach(x=>garbage(x,Math.max(1,Math.floor(n/Math.max(1,players.length-1)))))}
+function lock(p){let q=p.piece;q.m.forEach((r,y)=>r.forEach((v,x)=>{if(v){let yy=q.y+y,xx=q.x+x;if(yy<0)p.alive=false;else p.grid[yy][xx]=q.c}}));let n=0;for(let y=H-1;y>=0;y--)if(p.grid[y].every(Boolean)){p.grid.splice(y,1);p.grid.unshift(Array(W).fill(null));n++;y++}if(n){p.lines+=n;p.score+=([0,100,300,500,800][n]||800);p.interval=Math.max(110,650-Math.floor(p.lines/5)*45);attack(p,n)}p.piece=piece();p.holdUsed=false;if(collide(p))p.alive=false}
+function action(id,a){let p=players.find(x=>x.id===id);if(!p||!p.alive||!started||over)return;if(a==="left"&&!collide(p,-1))p.piece.x--;if(a==="right"&&!collide(p,1))p.piece.x++;if(a==="rotate")rotate(p);if(a==="down"){if(!collide(p,0,1)){p.piece.y++;p.score++}else lock(p)}if(a==="drop"){while(!collide(p,0,1)){p.piece.y++;p.score+=2}lock(p)}if(a==="hold"&&!p.holdUsed){let cur={m:p.piece.m.map(r=>r.slice()),c:p.piece.c};if(p.held){let old=p.held;p.held=cur;p.piece={...old,x:3,y:0}}else{p.held=cur;p.piece=piece()}p.holdUsed=true;if(collide(p))p.alive=false}}
+function checkWinner(){let alive=players.filter(p=>p.alive);if(started&&alive.length<=1){over=true;started=false;toast("🏆 "+(alive[0]?alive[0].name+" ЯЛЛАА!":"Бүгд ялагдлаа."));$("rematch").disabled=seat<0;broadcastEnd()}}
+function broadcastEnd(){connections.forEach(c=>send(c,{type:"state",data:snapshot()}))}
+function hostLoop(t){if(!host||!started||over)return;let dt=Math.min(100,t-last);last=t;elapsed+=dt;players.forEach(p=>{if(p.alive){p.drop+=dt;if(p.drop>=p.interval){p.drop=0;if(!collide(p,0,1))p.piece.y++;else lock(p)}}});$("time").textContent=fmt(elapsed);broadcast();gameTimer=setTimeout(()=>requestAnimationFrame(hostLoop),45)}
+function fmt(ms){let n=Math.floor(ms/1000);return String(Math.floor(n/60)).padStart(2,"0")+":"+String(n%60).padStart(2,"0")}
+async function publishRoom(force=false){
+ if(!host||!DB||!room)return;
+ const status=over?"finished":started?"playing":"waiting";
+ const signature=JSON.stringify({name:$("roomName").value||"Tetris өрөө",peerId:hostPeerId,count:players.length,spectators:spectators.size,capacity,status});
+ const now=Date.now();
+ // Prevent a database write on every animation frame; refresh presence at most every 12 seconds.
+ if(!force&&signature===lastRoomSignature&&now-lastRoomPublish<12000)return;
+ lastRoomSignature=signature;lastRoomPublish=now;
+ try{await db("rooms/"+room,"PUT",{name:$("roomName").value||"Tetris өрөө",peerId:hostPeerId,count:players.length,spectators:spectators.size,capacity,status,updatedAt:now})}catch(e){console.warn("Room directory update failed",e)}
+}
+function setupHost(){host=true;seat=0;capacity=Number($("capacity").value);room=rand();hostPeerId="tetris-"+room.toLowerCase();reconnectToken=rand()+rand();localStorage.setItem("ot_token",reconnectToken);localStorage.setItem("ot_room",room);players=[newPlayer(0,name,reconnectToken)];connections=new Map();peer=new Peer(hostPeerId);peer.on("open",()=>{$("net").textContent="Өрөө нээлттэй";toast("Өрөө үүслээ. Код: "+room);updateMeta();publishRoom();listRooms()});peer.on("connection",c=>{c.on("data",m=>hostMessage(m,c));c.on("close",()=>{let pl=players.find(p=>p.token===c.token);if(pl){pl.connected=false;connections.delete(pl.id);broadcast()}})});peer.on("error",e=>toast("Peer холболтын алдаа: "+e.type));render()}
+function hostMessage(m,c){if(m.type==="spectate"){spectators.add(c);c.on("close",()=>{spectators.delete(c);publishRoom();$("spectatorLabel").textContent="Үзэгч: "+spectators.size});send(c,{type:"spectating",room,players,snapshot:snapshot()});send(c,{type:"state",data:snapshot()});$("spectatorLabel").textContent="Үзэгч: "+spectators.size;publishRoom();return}
+if(m.type==="chat"){let item={name:m.name||"Тоглогч",text:String(m.text||"").slice(0,180),at:Date.now()};connections.forEach(x=>send(x,{type:"chat",item}));spectators.forEach(x=>send(x,{type:"chat",item}));appendChat(item);return}
+if(m.type==="rematch"){rematchVotes.add(m.seat);connections.forEach(x=>send(x,{type:"votes",votes:[...rematchVotes],total:players.filter(p=>p.connected).length}));if(host&&rematchVotes.size>=players.filter(p=>p.connected).length){resetRound();}return}
+if(m.type==="join"||m.type==="reconnect"){let tok=m.token||rand()+rand();let p=players.find(x=>x.token===tok);if(!p){if(players.length>=capacity){send(c,{type:"reject",reason:"Өрөө дүүрсэн"});return}p=newPlayer(players.length,m.name||"Тоглогч",tok);players.push(p)}else{p.connected=true}c.token=tok;c.playerId=p.id;connections.set(p.id,c);send(c,{type:"assigned",seat:p.id,token:tok,room,capacity,players,snapshot:snapshot()});broadcast();return}if(m.type==="action"&&c.playerId===m.seat){action(c.playerId,m.action);broadcast()}}
+function joinRoom(code,spectator=false){if(!needName())return;let info=window.__roomCache?.[code];if(!info&&DB){db("rooms/"+code).then(r=>connectTo(r,code,spectator)).catch(()=>toast("Өрөө олдсонгүй."));return}connectTo(info,code,spectator)}
+function connectTo(info,code,spectator=false){if(!info||!info.peerId){toast("Өрөө олдсонгүй эсвэл хаагдсан байна.");return}if(peer)peer.destroy();host=false;room=code;let token=localStorage.getItem("ot_token")||"";let isReconnect=localStorage.getItem("ot_room")===code&&!!token;peer=new Peer();peer.on("open",()=>{hostConn=peer.connect(info.peerId,{reliable:true});hostConn.on("open",()=>{hostConn.send(spectator?{type:"spectate"}:{type:isReconnect?"reconnect":"join",name,token});$("net").textContent="Холбогдож байна..." });hostConn.on("data",m=>clientMessage(m));hostConn.on("close",()=>{$("net").textContent="Холболт тасарсан";$("reconnect").disabled=false;toast("Холболт тасарлаа. Дахин холбогдох товчийг дарна уу.")})});peer.on("error",e=>toast("Холболтын алдаа: "+e.type))}
+function clientMessage(m){if(m.type==="chat"){appendChat(m.item);return}if(m.type==="votes"){$("votes").textContent="Дахин тоглох санал: "+m.votes.length+"/"+m.total;return}if(m.type==="spectating"){seat=-1;players=m.players;hostConn.spectator=true;$("net").textContent="Үзэгчээр холбогдсон";$("spectate").disabled=true;$("rematch").disabled=true;render();return}if(m.type==="reject"){toast(m.reason);return}if(m.type==="assigned"){seat=m.seat;reconnectToken=m.token;localStorage.setItem("ot_token",m.token);localStorage.setItem("ot_room",room);players=m.players;capacity=m.capacity;$("roomCode").value=room;$("net").textContent="Холбогдсон";toast("Өрөөнд амжилттай нэгдлээ.");render();return}if(m.type==="state"){players=m.data.players;started=m.data.started;over=m.data.over;elapsed=m.data.elapsed;capacity=m.data.capacity;$("time").textContent=fmt(elapsed);$("net").textContent=hostConn?.spectator?"Үзэж байна":"Холбогдсон";$("rematch").disabled=!over||seat<0;$("spectate").disabled=true;render()}}
+function appendChat(item){let box=$("chatLog");if(box.textContent==="Чат эхлээгүй байна.")box.textContent="";let line=document.createElement("div");line.textContent=(item.name||"Тоглогч")+": "+item.text;box.appendChild(line);box.scrollTop=box.scrollHeight}
+function sendChat(){let text=$("chatInput").value.trim();if(!text)return;if(host){let item={name,text,at:Date.now()};appendChat(item);connections.forEach(c=>send(c,{type:"chat",item}));spectators.forEach(c=>send(c,{type:"chat",item}))}else send(hostConn,{type:"chat",name,text});$("chatInput").value=""}
+function resetRound(){players=players.map(p=>newPlayer(p.id,p.name,p.token));started=false;over=false;elapsed=0;rematchVotes.clear();$("votes").textContent="";$("time").textContent="00:00";toast("Шинэ раунд эхлэхэд бэлэн. Өрөөний эзэн эхлүүлнэ.");broadcast()}
+$("sendChat").onclick=sendChat;$("chatInput").addEventListener("keydown",e=>{if(e.key==="Enter")sendChat()});
+$("spectate").onclick=()=>{let c=room||$("roomCode").value.trim().toUpperCase();if(!c)return toast("Өрөөний код оруулна уу.");if(!DB)return toast("Үзэгчээр орохын тулд Firebase тохируулна уу.");db("rooms/"+c).then(r=>connectTo(r,c,true)).catch(()=>toast("Өрөө олдсонгүй."))};
+$("rematch").onclick=()=>{if(seat<0)return;if(host){rematchVotes.add(seat);$("votes").textContent="Дахин тоглох санал: "+rematchVotes.size+"/"+players.filter(p=>p.connected).length;if(rematchVotes.size>=players.filter(p=>p.connected).length)resetRound()}else send(hostConn,{type:"rematch",seat})};
+document.querySelectorAll("[data-act]").forEach(b=>{let run=e=>{e.preventDefault();let a=b.dataset.act;if(seat<0||!started)return;if(host){action(seat,a);broadcast()}else send(hostConn,{type:"action",seat,action:a})};b.addEventListener("click",run);b.addEventListener("touchstart",run,{passive:false})});
+$("create").onclick=()=>{if(!needName())return;if(peer)peer.destroy();setupHost()};
+async function refreshDirectory(){window.__roomCache={};if(!DB){listRooms();return}try{let all=await db("rooms");Object.entries(all||{}).forEach(([k,v])=>window.__roomCache[k]=v);await listRooms()}catch(e){toast("Өрөөний жагсаалт уншиж чадсангүй.")}}
+$("refresh").onclick=refreshDirectory;$("join").onclick=()=>joinRoom($("roomCode").value.trim().toUpperCase());
+$("copy").onclick=()=>navigator.clipboard?.writeText(room).then(()=>toast("Өрөөний код хуулагдлаа: "+room)).catch(()=>toast("Өрөөний код: "+room));
+$("reconnect").onclick=()=>{let c=localStorage.getItem("ot_room");if(!c)return toast("Өмнө нэгдсэн өрөөний мэдээлэл олдсонгүй.");joinRoom(c)};
+$("start").onclick=()=>{if(!host||players.length<2)return;started=true;over=false;elapsed=0;last=performance.now();toast("Тоглоом эхэллээ!");broadcast();requestAnimationFrame(hostLoop)};
+document.addEventListener("keydown",e=>{let map={KeyA:"left",ArrowLeft:"left",KeyD:"right",ArrowRight:"right",KeyW:"rotate",ArrowUp:"rotate",KeyS:"down",ArrowDown:"down",Space:"drop",Enter:"drop",KeyC:"hold",ShiftLeft:"hold",ShiftRight:"hold"},a=map[e.code];if(a){e.preventDefault();if(e.repeat||seat<0||!started)return;if(host){action(seat,a);broadcast()}else send(hostConn,{type:"action",seat,action:a})}});
+// Room presence expires from the directory when the host stops refreshing it.
+// Keep the host tab open during play: the current prototype uses the host browser as the game authority.
+if(name){$("welcome").textContent="Сайн уу, "+name}
+if(DB){$("directoryState").textContent="Firebase нэвтэрч байна...";firebaseReady.then(()=>{ $("directoryState").textContent="Firebase холбогдсон";refreshDirectory();dirTimer=setInterval(refreshDirectory,12000)}).catch(e=>{ $("directoryState").textContent="Firebase нэвтрэлт амжилтгүй";toast("Firebase Authentication алдаа: "+e.message)})}else listRooms();
+if(localStorage.getItem("ot_token"))$("reconnect").disabled=false;
+$("mobilePad").addEventListener("contextmenu",e=>e.preventDefault());
+</script></body></html>
