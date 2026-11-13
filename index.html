@@ -141,15 +141,16 @@ button.danger{background:#7b3450!important}
 <aside class="left-sidebar">
  <div class="left-stack">
  <section class="panel">
- <h3>🏠 Өрөө үүсгэх / нэгдэх</h3><div class="row"><label>Өрөөний нэр <input id="roomName" maxlength="24" placeholder="Жишээ: Найзууд"></label><label>Хүний тоо <select id="capacity"><option>2</option><option>3</option><option>4</option><option>5</option><option selected>6</option></select></label><button id="create" class="primary">Өрөө үүсгэх</button></div>
- <div class="row" style="margin-top:9px"><label>Өрөөний код <input id="roomCode" maxlength="8" placeholder="КОД"></label><button id="join">Кодоор нэгдэх</button><button id="copy" disabled>Код хуулах</button><button id="reconnect" disabled>↪ Дахин холбогдох</button></div>
-</section>
- <section class="panel room-sidebar">
-  <h3>🌐 Өрөөнүүд</h3>
-  <button id="refresh" class="refresh-btn">↻ Жагсаалт шинэчлэх</button>
-  <div id="directoryState" class="muted directory-state">Өгөгдлийн сан тохируулаагүй</div>
-  <div id="rooms" class="rooms"><p class="muted">Өрөөний жагсаалтыг ачаалж байна...</p></div>
- </section>
+   <h3>🌐 Нийтлэг тоглолт</h3>
+   <p class="note">Өрөө үүсгэх, код оруулах шаардлагагүй. Нэрээ хадгалаад JOIN дарж нийтлэг тоглолтод нэгдэнэ.</p>
+   <button id="joinGlobal" class="primary" style="width:100%">▶ JOIN — ТОГЛОЛТОД НЭГДЭХ</button>
+   <button id="leaveGlobal" class="danger" style="width:100%;margin-top:8px" disabled>Гарах</button>
+   <div id="directoryState" class="muted directory-state" style="margin-top:10px">Холбогдоогүй</div>
+  </section>
+  <section class="panel room-sidebar">
+   <h3>👥 Нийтлэг тоглогчид</h3>
+   <div id="rooms" class="rooms"><p class="muted">Тоглолтод нэгдээгүй байна.</p></div>
+  </section>
  </div>
 </aside>
 <div class="game-main">
@@ -511,10 +512,6 @@ $("leaveGlobal").onclick=()=>{
  clearTimeout(globalRetryTimer);host=false;room="";seat=-1;hostConn=null;players=[];started=false;over=false;
  $("net").textContent="Холбогдоогүй";$("directoryState").textContent="Тоглолтоос гарсан";render();
 };
-$("create").onclick=joinGlobal;
-$("refresh").onclick=()=>{};
-$("join").onclick=joinGlobal;
-$("reconnect").onclick=joinGlobal;
 let starting=false;
 function showCountdown(value,label){
  const overlay=$("countdownOverlay");$("countdownNumber").textContent=value;$("countdownCaption").textContent=label||"БЭЛДЭЭРЭЙ!";overlay.classList.add("show");
@@ -558,5 +555,5 @@ window.addEventListener("pagehide",()=>{if(peer){try{peer.destroy()}catch(e){}}}
 if(name){$("welcome").textContent="Сайн уу, "+name}
 $("directoryState").textContent="Нийтлэг тоглолтод нэгдэхэд бэлэн";
 firebaseReady.catch(e=>console.warn("Firebase anonymous auth:",e));
-$("mobilePad").addEventListener("contextmenu",e=>e.preventDefault());
+document.addEventListener("contextmenu",e=>{if(e.target.closest("[data-act]"))e.preventDefault()});
 </script></body></html>
