@@ -355,27 +355,50 @@ function miniPreview(shape){
  let rows=shape.m.length,cols=shape.m[0].length;
  return `<div class="mini-piece" style="--cols:${cols};--rows:${rows}">${shape.m.flatMap((r,y)=>r.map((v,x)=>v?`<i style="grid-column:${x+1};grid-row:${y+1};background:${shape.c}"></i>`:"")).join("")}</div>`;
 }
+let lastRenderStructure="";
 function render(){
  updateMeta();
- $("players").innerHTML="";
  const mine=players.find(p=>p.id===seat);
  const others=players.filter(p=>p.id!==seat);
+ const structure=JSON.stringify({seat,players:players.map(p=>[p.id,p.name])});
+ if(structure!==lastRenderStructure){
+  lastRenderStructure=structure;
+  $("players").innerHTML="";
+  if(mine){
+   const el=document.createElement("section");el.className="player me featured-player";
+   el.innerHTML=`<div class="featured-head"><h2>🟢 ${esc(mine.name)} <span class="you-tag">ТАНЫ ТАЛБАЙ</span></h2><div class="featured-stats"><span>ОНОО <b data-mine-score>${mine.score}</b></span><span>МӨР <b data-mine-lines>${mine.lines}</b></span><span>ТҮВШИН <b data-mine-level>${Math.floor(mine.lines/5)+1}</b></span></div></div>
+   <div class="board-layout">
+    <aside class="preview-column"><div class="preview-box"><h4>HOLD</h4><div id="holdPreview">${miniPreview(mine.held)}</div><small>Хадгалах</small></div></aside>
+    <div class="main-board-wrap"><canvas width="200" height="400" id="cv${mine.id}"></canvas><div class="board-footer">SPACE — Шууд унагах · C — Хадгалах</div></div>
+    <aside class="preview-column"><div class="preview-box"><h4>NEXT</h4><div id="nextPreview">${mine.nextQueue.slice(0,3).map((ix,i)=>`<div class="next-entry"><small>${i+1}</small>${miniPreview(makePiece(ix))}</div>`).join("")}</div><small>Дараагийн дүрс</small></div></aside>
+   </div>
+   <div class="mobile-actions"><button data-act="left">◀</button><button data-act="rotate">⟳</button><button data-act="right">▶</button><button data-act="down">▼</button><button data-act="hold">HOLD</button><button data-act="drop">DROP</button></div>`;
+   $("players").appendChild(el);
+  }
+  if(others.length){
+   const box=document.createElement("section");box.className="opponents-panel";
+   box.innerHTML=`<div class="opponents-title"><h3>⚔ ӨРСӨЛДӨГЧИД</h3><span>${others.length} тоглогч</span></div><div class="opponents-grid">${others.map(p=>`<article class="player opponent ${p.alive?"":"out"}" data-player-card="${p.id}"><h3>${esc(p.name)} ${p.connected?"":"· салсан"}</h3><canvas width="200" height="400" id="cv${p.id}"></canvas><div class="stats"><span>Оноо <b data-score>${p.score}</b></span><span>Мөр <b data-lines>${p.lines}</b></span></div></article>`).join("")}</div>`;
+   $("players").appendChild(box);
+  }
+ }
  if(mine){
-  const el=document.createElement("section");el.className="player me featured-player";
-  el.innerHTML=`<div class="featured-head"><h2>🟢 ${esc(mine.name)} <span class="you-tag">ТАНЫ ТАЛБАЙ</span></h2><div class="featured-stats"><span>ОНОО <b>${mine.score}</b></span><span>МӨР <b>${mine.lines}</b></span><span>ТҮВШИН <b>${Math.floor(mine.lines/5)+1}</b></span></div></div>
-  <div class="board-layout">
-   <aside class="preview-column"><div class="preview-box"><h4>HOLD</h4><div id="holdPreview">${miniPreview(mine.held)}</div><small>Хадгалах</small></div></aside>
-   <div class="main-board-wrap"><canvas width="200" height="400" id="cv${mine.id}"></canvas><div class="board-footer">SPACE — Шууд унагах · C — Хадгалах</div></div>
-   <aside class="preview-column"><div class="preview-box"><h4>NEXT</h4><div id="nextPreview">${mine.nextQueue.slice(0,3).map((ix,i)=>`<div class="next-entry"><small>${i+1}</small>${miniPreview(makePiece(ix))}</div>`).join("")}</div><small>Дараагийн дүрс</small></div></aside>
-  </div>
-  <div class="mobile-actions"><button data-act="left">◀</button><button data-act="rotate">⟳</button><button data-act="right">▶</button><button data-act="down">▼</button><button data-act="hold">HOLD</button><button data-act="drop">DROP</button></div>`;
-  $("players").appendChild(el);draw(mine,mine.id);
+  const ms=$("players").querySelector("[data-mine-score]");if(ms)ms.textContent=mine.score;
+  const ml=$("players").querySelector("[data-mine-lines]");if(ml)ml.textContent=mine.lines;
+  const mv=$("players").querySelector("[data-mine-level]");if(mv)mv.textContent=Math.floor(mine.lines/5)+1;
+  const hp=$("holdPreview");if(hp)hp.innerHTML=miniPreview(mine.held);
+  const np=$("nextPreview");if(np)np.innerHTML=mine.nextQueue.slice(0,3).map((ix,i)=>`<div class="next-entry"><small>${i+1}</small>${miniPreview(makePiece(ix))}</div>`).join("");
+  draw(mine,mine.id);
  }
- if(others.length){
-  const box=document.createElement("section");box.className="opponents-panel";
-  box.innerHTML=`<div class="opponents-title"><h3>⚔ ӨРСӨЛДӨГЧИД</h3><span>${others.length} тоглогч</span></div><div class="opponents-grid">${others.map(p=>`<article class="player opponent ${p.alive?"":"out"}"><h3>${esc(p.name)} ${p.connected?"":"· салсан"}</h3><canvas width="200" height="400" id="cv${p.id}"></canvas><div class="stats"><span>Оноо <b>${p.score}</b></span><span>Мөр <b>${p.lines}</b></span></div></article>`).join("")}</div>`;
-  $("players").appendChild(box);others.forEach(p=>draw(p,p.id));
- }
+ others.forEach(p=>{
+  const card=$("players").querySelector(`[data-player-card="${p.id}"]`);
+  if(card){
+   card.classList.toggle("out",!p.alive);
+   const h=card.querySelector("h3");if(h)h.textContent=p.name+(p.connected?"":" · салсан");
+   const sc=card.querySelector("[data-score]");if(sc)sc.textContent=p.score;
+   const ln=card.querySelector("[data-lines]");if(ln)ln.textContent=p.lines;
+  }
+  draw(p,p.id);
+ });
  const resultsBox=$("finalResults");
  if(over&&finalResults.length){
   resultsBox.classList.remove("hidden");
